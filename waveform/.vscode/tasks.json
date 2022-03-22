@@ -1,0 +1,65 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "CMake Initialization",
+            "command": "make",
+            "args": [
+                "cmake_init"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "type": "shell",
+            "label": "Make (Debug)",
+            "command": "make",
+            "args": [
+                "-j",
+                "VERBOSE=1",
+                "-C",
+                "build/debug"
+            ],
+            "options": {
+                "env": {
+                    "LANG": "en_US.UTF-8"
+                },
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": {
+                "base": "$gcc",
+                "fileLocation": ["absolute"]
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Make (Release)",
+            "command": "make",
+            "args": [
+                "-j",
+                "VERBOSE=1",
+                "-C",
+                "build/release"
+            ],
+            "options": {
+                "env": {
+                    "LANG": "en_US.UTF-8"
+                },
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": {
+                "base": "$gcc",
+                "fileLocation": ["absolute"]
+            },
+            "group": "build"
+        }
+    ]
+}
