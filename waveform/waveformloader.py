@@ -1,20 +1,44 @@
 from waveformloader_c import ParseFstWaveform, ParseVcdWaveform
 import numpy as np
 class SignalData(object):
+	# TODO: 64+ bit signal
+	# TODO: Data write
+
+	@staticmethod
+	def GetConstantsFromNbit(nbit, dtype):
+		if nbit == 1:
+			rshamt = 3
+		elif nbit == 2:
+			rshamt = 2
+		elif nbit <= 4:
+			rshamt = 1
+		else:
+			rshamt = 0
+		mask = dtype.type(-1) >> dtype.type(8*dtype.itemsize - nbit)
+		return rshamt, mask
+
 	def __init__(self, tup):
 		(
 			self.nbit_, self.nsample_, self.timepoints_,
 			self.data01_, self.dataxz_
 		) = tup
-#		self.to_array_idx_shamt_ = 
-#
-#	def __getitem__(self, i):
-#		array_idx = i >> self.to_array_idx_shamt_
-#		return (
-#			self.timepoints_[i],
-#			np.right_shift(self.data01_[array_idx], >> ) & self.mask_
-#			np.right_shift(self.dataxz_[array_idx], >> ) & self.mask_
-#		)
+		(
+			self.kRSHAMT_, self.kMASK_
+		) = SignalData.GetConstantsFromNbit(self.nbit_, self.data01_.dtype)
+
+	def __getitem__(self, i):
+		# Convert i to the numpy array index.
+		# Shift 1/2/34-bits signals by 3/2/1, respectively.
+		# Signals shorter than 4-bit are packed in a uint8.
+		array_idx = i >> self.kRSHAMT_
+		# Shift amount to extract the bits inside a uint8.
+		# Type conversion is for preventing casting.
+		rshamt = self.data01_.dtype.type((i << 3 >> self.kRSHAMT_) & 0x7)
+		return (
+			self.timepoints_[i],
+			(self.data01_[array_idx] >> rshamt) & self.kMASK_,
+			None if self.dataxz_ is None else (self.dataxz_[array_idx] >> rshamt) & self.kMASK_,
+		)
 
 class SignalHierarchy(object):
 	def __init__(self, signal_data, htyp, styp=0, name=str()):
@@ -53,3 +77,4 @@ if __name__ == "__main__":
 	import os
 	fname = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_ahb_example.fst")
 	wave = Waveform(fname)
+	wave.signal_data_[3][4][0].dtype

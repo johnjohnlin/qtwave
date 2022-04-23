@@ -72,3 +72,9 @@ int ParseFst(const char *file_name, unique_ptr<Waveform> &waveform) {
 	return 0;
 }
 
+#ifdef TEST
+int main() {
+	unique_ptr<Waveform> w;
+	return ParseFst("test_ahb_example.fst", w);
+}
+#endif
