@@ -1,6 +1,57 @@
 #!/usr/bin/env python
 from PySide6 import QtCore, QtGui, QtWidgets
 import sys
+from waveform import waveformloader
+import numpy as np
+
+
+class QtWaveModel(QtCore.QAbstractItemModel):
+	def __init__(self):
+		QtCore.QAbstractItemModel.__init__(self)
+		self.wave_ = waveformloader.Waveform("waveform/test_ahb_example.fst")
+
+	def rowCount(self, node_index):
+		if node_index.column() > 0:
+			return 0
+		node = node_index.internalPointer() if node_index.isValid() else self.wave_.root_
+		return len(node.children_)
+
+	def columnCount(self, node_index):
+		return 2
+
+	def index(self, row, column, parent_index):
+		if not self.hasIndex(row, column, parent_index):
+			return QtCore.QModelIndex()
+		parent = parent_index.internalPointer() if parent_index.isValid() else self.wave_.root_
+		if row < len(parent.children_):
+			return self.createIndex(row, column, parent.children_[row])
+		else:
+			return QtCore.QModelIndex()
+
+	def parent(self, node_index):
+		if node_index.isValid():
+			parent = node_index.internalPointer().parent_
+			if not parent.is_root_:
+				return self.createIndex(parent.row_, 0, parent)
+		return QtCore.QModelIndex()
+
+	def data(self, node_index, role):
+		if node_index.isValid() and role == QtCore.Qt.DisplayRole:
+			node = node_index.internalPointer()
+			if node_index.column() == 0:
+				data = node.name_
+			else:
+				if node.hier_type_ == 0:
+					data = f"module ({node.secondary_type_})"
+				else:
+					data = str(node.signal_data_[0][1])
+			return data
+		return None
+
+	def headerData(self, section, orientation, role):
+		if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+			return "Value" if section == 1 else "Name"
+		return None
 
 def TraverseMenu(parent, menu_dict):
 	for k, v in menu_dict.items():
@@ -30,16 +81,14 @@ class QtWave(QtWidgets.QMainWindow):
 			self.waveform_model,
 			minimumWidth=50
 		)
-		line = QtWidgets.QGraphicsLineItem(0, 0, 100, 100)
-		line.setPen(QtGui.QPen(QtCore.Qt.green))
 		self.waveform_model.setBackgroundBrush(QtCore.Qt.black)
-		self.waveform_model.addItem(line)
-		self.signal_list_model = QtGui.QStandardItemModel()
+		self.signal_list_model = QtWaveModel()
 		self.signal_list_widget = QtWidgets.QTreeView(
-			headerHidden=True,
+			headerHidden=False,
 			minimumWidth=50,
 			model=self.signal_list_model
 		)
+		self.AddTestLine()
 		self.InitModel()
 		self.central_widget.addWidget(self.signal_list_widget)
 		self.central_widget.addWidget(self.waveform_widget)
@@ -49,18 +98,28 @@ class QtWave(QtWidgets.QMainWindow):
 		# self.setToolBar(self.menu_bar)
 
 	def InitModel(self):
-		root = self.signal_list_model.invisibleRootItem()
-		#root.appendRow("1")
-		#root.appendRow("3")
-		def F(s):
-			c1 = QtGui.QStandardItem(s)
-			c2 = QtGui.QStandardItem(s*2)
-			c2.setEditable(False)
-			return c1, c2
-		a, b, c = [F(x) for x in "abc"]
-		root.appendRow(a)
-		root.appendRow(b)
-		b[0].appendRow(c)
+		pass
+
+	def AddTestLine(self):
+		HEIGHT = 20
+		HSTRIDE = 30
+		XRANGE = 1000
+		ofs = 0
+		timepoints = np.arange(XRANGE)*1400
+		for k, v in self.signal_list_model.wave_.signal_data_.items():
+			if v.nbit_ == 6:
+				idx, tps, data01, dataxz = v.GetValuesFromTimepoints(timepoints)
+				line = QtWidgets.QGraphicsLineItem(0, ofs, XRANGE, ofs)
+				line.setPen(QtGui.QPen(QtCore.Qt.green))
+				self.waveform_model.addItem(line)
+				line = QtWidgets.QGraphicsLineItem(0, ofs+HEIGHT, XRANGE, ofs+HEIGHT)
+				line.setPen(QtGui.QPen(QtCore.Qt.green))
+				self.waveform_model.addItem(line)
+				for i in range(idx.size):
+					line = QtWidgets.QGraphicsLineItem(idx[i], ofs, idx[i], ofs+HEIGHT)
+					line.setPen(QtGui.QPen(QtCore.Qt.green))
+					self.waveform_model.addItem(line)
+			ofs += HSTRIDE
 
 	def CreateMenuBar(self):
 		menu_bar = QtWidgets.QMenuBar(self)

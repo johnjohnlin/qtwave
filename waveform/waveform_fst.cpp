@@ -41,7 +41,7 @@ int ParseFst(const char *file_name, unique_ptr<Waveform> &waveform) {
 		switch (hier->htyp) {
 			case FST_HT_SCOPE: {
 				auto &scope = hier->u.scope;
-				hier_cmd.push_back({hier->htyp, scope.typ});
+				hier_cmd.push_back({hier->htyp, scope.typ, 0, scope.name});
 				fstReaderPushScope(ctx, scope.name, nullptr);
 				break;
 			}

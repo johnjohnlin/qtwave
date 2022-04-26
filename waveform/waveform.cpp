@@ -107,10 +107,11 @@ struct SignalData::DataL: public SignalData::Data  {
 	DataL(int nbit):
 		Data(nbit) {}
 	virtual void PackBit(const int bit01, const int bitxz) {
-		cout << "64+ bit not implemented" << endl;
+		cerr << "64+ bit not implemented" << endl;
+		abort();
 	}
 	virtual void FinishOneSample() {
-		cout << "64+ bit not implemented" << endl;
+		cerr << "64+ bit not implemented" << endl;
 		abort();
 	}
 	virtual size_t get_vector_type_size() {
@@ -128,7 +129,7 @@ private:
 };
 
 SignalData::SignalData(const int nbit) {
-	if (nbit < 8) {
+	if (nbit <= 4) {
 		data_.reset(new DataS(nbit));
 	} else if (nbit <= 8) {
 		data_.reset(new DataM<uint8_t>(nbit));

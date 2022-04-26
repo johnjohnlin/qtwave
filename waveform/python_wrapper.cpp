@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <memory>
 #include <vector>
+#include <iostream>
 using namespace std;
 
 #ifndef MODULE_NAME
@@ -92,7 +93,7 @@ static PyObject* CreateLinearNpArray(
 			vector_data_ptr += nbyte;
 		} else {
 			while (count--) {
-				*data = *vector_data_ptr;
+				memcpy(data, vector_data_ptr, vector_type_size);
 				data += stride;
 				vector_data_ptr += vector_type_size;
 			}
