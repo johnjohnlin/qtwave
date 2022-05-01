@@ -3,6 +3,7 @@
 #include "waveform_fst.h"
 #include <cstdint>
 #include <memory>
+#include <algorithm>
 using namespace std;
 
 static void fst_callback1(
@@ -10,6 +11,7 @@ static void fst_callback1(
 	const unsigned char *value_str
 ) {
 	auto waveform = static_cast<Waveform*>(user_callback_data_pointer);
+	waveform->max_timepoint_ = max(waveform->max_timepoint_, time);
 	auto it = waveform->signals_.find(handle);
 	if (it != waveform->signals_.end()) {
 		it->second->Pack4ValueBinaryString(time, (const char*)value_str);
@@ -21,6 +23,7 @@ static void fst_callback2(
 	const unsigned char *value_str, uint32_t len
 ) {
 	auto waveform = static_cast<Waveform*>(user_callback_data_pointer);
+	waveform->max_timepoint_ = max(waveform->max_timepoint_, time);
 	auto it = waveform->signals_.find(handle);
 	if (it != waveform->signals_.end()) {
 		it->second->Pack4ValueBinaryString(time, (const char*)value_str, len);

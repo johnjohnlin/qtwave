@@ -159,10 +159,12 @@ static PyObject* SignalToPythonDict(std::unordered_map<uint64_t, std::unique_ptr
 
 static PyObject* Waveform2Python(Waveform &waveform) {
 	PyObject *timescale_py = PyLong_FromLong(waveform.timescale_);
+	PyObject *max_timepoint_py = PyLong_FromLong(waveform.max_timepoint_);
 	PyObject *hierarchy_py = HierarchyCommandToPythonList(waveform.hier_cmd_);
 	PyObject *signals_pydict = SignalToPythonDict(waveform.signals_);
 	return VectorToPythonTuple({
 		timescale_py,
+		max_timepoint_py,
 		hierarchy_py,
 		signals_pydict,
 	});

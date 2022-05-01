@@ -3,8 +3,9 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import sys
 from waveform import waveformloader
 import numpy as np
+import WaveformWidget
 
-
+# show the signal list, TODO: the name sucks
 class QtWaveModel(QtCore.QAbstractItemModel):
 	def __init__(self):
 		QtCore.QAbstractItemModel.__init__(self)
@@ -75,51 +76,20 @@ class QtWave(QtWidgets.QMainWindow):
 		self.menu_bar = self.CreateMenuBar()
 		self.status_bar = self.CreateStatusBar()
 		self.tool_bar = None
-		self.central_widget = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal, childrenCollapsible=False)
-		self.waveform_model = QtWidgets.QGraphicsScene()
-		self.waveform_widget = QtWidgets.QGraphicsView(
-			self.waveform_model,
-			minimumWidth=50
-		)
-		self.waveform_model.setBackgroundBrush(QtCore.Qt.black)
+		self.central_widget = QtWidgets.QSplitter()
 		self.signal_list_model = QtWaveModel()
 		self.signal_list_widget = QtWidgets.QTreeView(
 			headerHidden=False,
 			minimumWidth=50,
 			model=self.signal_list_model
 		)
-		self.AddTestLine()
-		self.InitModel()
+		self.waveform_widget = WaveformWidget.WaveformWidget()
 		self.central_widget.addWidget(self.signal_list_widget)
 		self.central_widget.addWidget(self.waveform_widget)
 		self.setCentralWidget(self.central_widget)
 		self.setMenuBar(self.menu_bar)
 		self.setStatusBar(self.status_bar)
 		# self.setToolBar(self.menu_bar)
-
-	def InitModel(self):
-		pass
-
-	def AddTestLine(self):
-		HEIGHT = 20
-		HSTRIDE = 30
-		XRANGE = 1000
-		ofs = 0
-		timepoints = np.arange(XRANGE)*1400
-		for k, v in self.signal_list_model.wave_.signal_data_.items():
-			if v.nbit_ == 6:
-				idx, tps, data01, dataxz = v.GetValuesFromTimepoints(timepoints)
-				line = QtWidgets.QGraphicsLineItem(0, ofs, XRANGE, ofs)
-				line.setPen(QtGui.QPen(QtCore.Qt.green))
-				self.waveform_model.addItem(line)
-				line = QtWidgets.QGraphicsLineItem(0, ofs+HEIGHT, XRANGE, ofs+HEIGHT)
-				line.setPen(QtGui.QPen(QtCore.Qt.green))
-				self.waveform_model.addItem(line)
-				for i in range(idx.size):
-					line = QtWidgets.QGraphicsLineItem(idx[i], ofs, idx[i], ofs+HEIGHT)
-					line.setPen(QtGui.QPen(QtCore.Qt.green))
-					self.waveform_model.addItem(line)
-			ofs += HSTRIDE
 
 	def CreateMenuBar(self):
 		menu_bar = QtWidgets.QMenuBar(self)

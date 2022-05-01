@@ -87,6 +87,9 @@ class SignalHierarchy(object):
 
 class Waveform(object):
 	def __init__(self, fname):
-		self.timescale_, hier_cmd, signal_data = ParseFstWaveform(fname)
+		(
+			self.timescale_, self.max_timepoint_,
+			hier_cmd, signal_data
+		) = ParseFstWaveform(fname)
 		self.signal_data_ = {k: SignalData(v) for k, v in signal_data.items()}
 		self.root_ = SignalHierarchy.FromHierarchyCommand(hier_cmd, self.signal_data_)

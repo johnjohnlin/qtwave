@@ -68,8 +68,9 @@ struct HierarchyCommand {
 };
 
 struct Waveform {
-	Waveform(): timescale_(0) {}
+	Waveform(): timescale_(0), max_timepoint_(0) {}
 	std::vector<HierarchyCommand> hier_cmd_;
 	int timescale_;
+	uint64_t max_timepoint_;
 	std::unordered_map<uint64_t, std::unique_ptr<SignalData>> signals_;
 };
