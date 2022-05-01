@@ -3,6 +3,10 @@ from waveform import waveformloader
 import numpy as np
 
 class WaveformGraphicsView(QtWidgets.QGraphicsView):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+
 	def setTimepoints(self, timepoints):
 		self.timepoints = timepoints
 
@@ -12,6 +16,16 @@ class WaveformGraphicsView(QtWidgets.QGraphicsView):
 	def resizeEvent(self, event):
 		print(event.size())
 		QtWidgets.QGraphicsView.resizeEvent(self, event)
+
+	def wheelEvent(self, event):
+		delta = event.pixelDelta().y()
+		if event.modifiers() == QtCore.Qt.ControlModifier:
+			zoom_xfactor = 3/2 if delta > 0 else 2/3
+			self.scale(zoom_xfactor, 1.0)
+		elif event.modifiers() == QtCore.Qt.ShiftModifier:
+			self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + delta)
+		else:
+			self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta)
 
 """
 class WaveformGraphicsItem(QtWidgets.QGraphicsItem):
@@ -27,12 +41,12 @@ class WaveformWidget(QtWidgets.QSplitter):
 		super().__init__(QtCore.Qt.Orientation.Horizontal, childrenCollapsible=False)
 		self.tmp_scene = QtWidgets.QGraphicsScene()
 		self.name_widget = QtWidgets.QTreeView(
-			headerHidden=False,
-			minimumWidth=50
+			headerHidden = False,
+			minimumWidth = 50
 		)
 		self.drawing_widget = WaveformGraphicsView(
 			self.tmp_scene,
-			minimumWidth=50
+			minimumWidth = 50
 		)
 		self.TmpModel()
 		self.drawing_widget.setBackgroundBrush(QtCore.Qt.black)
@@ -47,6 +61,7 @@ class WaveformWidget(QtWidgets.QSplitter):
 		ofs = 0
 		timepoints = np.arange(XRANGE)*1400
 		green_pen = QtGui.QPen(QtCore.Qt.green)
+		green_pen.setCosmetic(True)
 		text_font = QtGui.QFont("monospace", pointSize=HEIGHT*0.6)
 		for k, v in wave.signal_data_.items():
 			idx, tps, data01, dataxz = v.GetValuesFromTimepoints(timepoints)
