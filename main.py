@@ -1,58 +1,9 @@
 #!/usr/bin/env python
 from PySide6 import QtCore, QtGui, QtWidgets
 import sys
-from waveform import waveformloader
 import numpy as np
 import WaveformWidget
-
-# show the signal list, TODO: the name sucks
-class QtWaveModel(QtCore.QAbstractItemModel):
-	def __init__(self):
-		QtCore.QAbstractItemModel.__init__(self)
-		self.wave_ = waveformloader.Waveform("waveform/test_ahb_example.fst")
-
-	def rowCount(self, node_index):
-		if node_index.column() > 0:
-			return 0
-		node = node_index.internalPointer() if node_index.isValid() else self.wave_.root_
-		return len(node.children_)
-
-	def columnCount(self, node_index):
-		return 2
-
-	def index(self, row, column, parent_index):
-		if not self.hasIndex(row, column, parent_index):
-			return QtCore.QModelIndex()
-		parent = parent_index.internalPointer() if parent_index.isValid() else self.wave_.root_
-		if row < len(parent.children_):
-			return self.createIndex(row, column, parent.children_[row])
-		else:
-			return QtCore.QModelIndex()
-
-	def parent(self, node_index):
-		if node_index.isValid():
-			parent = node_index.internalPointer().parent_
-			if not parent.is_root_:
-				return self.createIndex(parent.row_, 0, parent)
-		return QtCore.QModelIndex()
-
-	def data(self, node_index, role):
-		if node_index.isValid() and role == QtCore.Qt.DisplayRole:
-			node = node_index.internalPointer()
-			if node_index.column() == 0:
-				data = node.name_
-			else:
-				if node.hier_type_ == 0:
-					data = f"module ({node.secondary_type_})"
-				else:
-					data = str(node.signal_data_[0][1])
-			return data
-		return None
-
-	def headerData(self, section, orientation, role):
-		if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-			return "Value" if section == 1 else "Name"
-		return None
+import ModuleWidget
 
 def TraverseMenu(parent, menu_dict):
 	for k, v in menu_dict.items():
@@ -77,14 +28,27 @@ class QtWave(QtWidgets.QMainWindow):
 		self.status_bar = self.CreateStatusBar()
 		self.tool_bar = None
 		self.central_widget = QtWidgets.QSplitter()
-		self.signal_list_model = QtWaveModel()
-		self.signal_list_widget = QtWidgets.QTreeView(
-			headerHidden=False,
+
+		# Left panel
+		self.left_widget = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical, childrenCollapsible=False)
+		self.module_list_model = ModuleWidget.QtWaveModel()
+		self.module_list_widget = QtWidgets.QTreeView(
+			headerHidden=True,
 			minimumWidth=50,
-			model=self.signal_list_model
+			model=self.module_list_model
 		)
+		self.signal_list_widget = QtWidgets.QTableView(
+			minimumWidth=50,
+			model=self.module_list_model
+		)
+		self.left_widget.addWidget(self.module_list_widget)
+		self.left_widget.addWidget(self.signal_list_widget)
+
+		# Right Panel
 		self.waveform_widget = WaveformWidget.WaveformWidget()
-		self.central_widget.addWidget(self.signal_list_widget)
+
+		# Central Widget
+		self.central_widget.addWidget(self.left_widget)
 		self.central_widget.addWidget(self.waveform_widget)
 		self.setCentralWidget(self.central_widget)
 		self.setMenuBar(self.menu_bar)
