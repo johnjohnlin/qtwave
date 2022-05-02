@@ -2,20 +2,58 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from waveform import waveformloader
 import numpy as np
 
+HEIGHT_ = 20
+PREHEIGHT_ = 5
+POSTHEIGHT_ = 5
+STRIDE_ = HEIGHT_ + PREHEIGHT_ + POSTHEIGHT_
+INIT_WAVEFORM_WIDTH_ = 2000
+
+# TODO shall be tree model
+class WaveformProxyListModel(QtCore.QAbstractTableModel):
+	def __init__(self):
+		QtCore.QAbstractTableModel.__init__(self)
+		self.name_value_list = list()
+
+	def rowCount(self, node_index):
+		return len(self.name_value_list)
+
+	def columnCount(self, node_index):
+		return 2
+
+	def data(self, node_index, role):
+		return (
+			self.name_value_list[node_index.row()][node_index.column()]
+			if role == QtCore.Qt.DisplayRole
+			else None
+		)
+
+	def headerData(self, section, orientation, role):
+		if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+			return "Value" if section == 1 else "Name"
+		return None
+
+class WaveformModel(object):
+	def __init__(self):
+		self.timepoints_screenspace = None
+		self.proxy_scene = QtWidgets.QGraphicsScene()
+		# TODO shall be tree model
+		self.proxy_list_model = WaveformProxyListModel()
+		self.wave = waveformloader.Waveform("waveform/test_ahb_example.fst")
+		for i, (k, v) in enumerate(self.wave.signal_data_.items()):
+			self.proxy_list_model.name_value_list.append((str(k), "XXX"))
+			witem = WaveformGraphicsItem(self, v)
+			witem.setPos(0, i*STRIDE_+PREHEIGHT_)
+			self.proxy_scene.addItem(witem)
+		self.proxy_scene.setSceneRect(0, 0, self.wave.max_timepoint_, len(self.wave.signal_data_)*STRIDE_)
+
 class WaveformGraphicsView(QtWidgets.QGraphicsView):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
-
-	def setTimepoints(self, timepoints):
-		self.timepoints = timepoints
-
-	def setSignalDdta(self, signal_data):
-		self.signal_data = signal_data
-
-	def resizeEvent(self, event):
-		print(event.size())
-		QtWidgets.QGraphicsView.resizeEvent(self, event)
+		self.setOptimizationFlags(QtWidgets.QGraphicsView.DontSavePainterState)
+		# FullViewportUpdate since we do the crop by ourselves
+		self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
+		self.timepoints = None
 
 	def wheelEvent(self, event):
 		delta = event.pixelDelta().y()
@@ -27,52 +65,67 @@ class WaveformGraphicsView(QtWidgets.QGraphicsView):
 		else:
 			self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta)
 
-"""
-class WaveformGraphicsItem(QtWidgets.QGraphicsItem):
-	def boundingRect(self):
-		pass
+	def paintEvent(self, event):
+		sz = self.size()
+		waveform_rect = self.mapToScene(QtCore.QRect(QtCore.QPoint(0, 0), sz))
+		xtick = sz.width()
+		xmin = waveform_rect[0].x()
+		xmax = waveform_rect[1].x()
+		self.timepoints = (np.linspace(xmin, xmax, xtick, False, dtype=np.float64) + 0.5).astype('u8')
+		QtWidgets.QGraphicsView.paintEvent(self, event)
 
-	def paint(self, event):
-		pass
-	"""
+class WaveformGraphicsItem(QtWidgets.QGraphicsItem):
+	def __init__(self, model, signal_data):
+		super().__init__()
+		self.model = model
+		self.signal_data = signal_data
+
+	def boundingRect(self):
+		return QtCore.QRect(0, 0, self.model.wave.max_timepoint_, HEIGHT_)
+
+	def paint(self, painter, option, parent):
+		graphics_view = parent.parent()
+		# TODO is this always true?
+		assert isinstance(graphics_view, WaveformGraphicsView)
+		if graphics_view.timepoints is None:
+			return
+		painter.save()
+		# color scheme
+		green_pen = QtGui.QPen(QtCore.Qt.green)
+		painter.setPen(green_pen)
+		# disable all X transform, we compute on the screen space X values directly
+		t = painter.transform()
+		t.setMatrix(
+			    1.0, t.m12(), t.m13(),
+			t.m21(), t.m22(), t.m23(),
+			    0.0, t.m32(), t.m33(),
+		)
+		painter.setTransform(t)
+		# paint at screen space
+		width = np.searchsorted(graphics_view.timepoints, self.model.wave.max_timepoint_)
+		painter.drawLine(0, 0, width, 0)
+		painter.drawLine(0, HEIGHT_, width, HEIGHT_)
+		idx, tps, data01, dataxz = self.signal_data.GetValuesFromTimepoints(graphics_view.timepoints)
+		for i in range(idx.size):
+			painter.drawLine(idx[i], 0, idx[i], HEIGHT_)
+		painter.restore()
 
 class WaveformWidget(QtWidgets.QSplitter):
 	def __init__(self):
 		super().__init__(QtCore.Qt.Orientation.Horizontal, childrenCollapsible=False)
-		self.tmp_scene = QtWidgets.QGraphicsScene()
-		self.name_widget = QtWidgets.QTreeView(
-			headerHidden = False,
+		self.model = WaveformModel()
+		self.name_widget = QtWidgets.QTableView(
+			model = self.model.proxy_list_model,
 			minimumWidth = 50
 		)
+		self.name_widget.verticalHeader().hide()
+		self.name_widget.horizontalHeader().setStretchLastSection(True)
 		self.drawing_widget = WaveformGraphicsView(
-			self.tmp_scene,
+			self.model.proxy_scene,
 			minimumWidth = 50
 		)
-		self.TmpModel()
 		self.drawing_widget.setBackgroundBrush(QtCore.Qt.black)
+		self.drawing_widget.setAlignment(QtCore.Qt.AlignLeft)
+		self.drawing_widget.scale(INIT_WAVEFORM_WIDTH_/self.model.wave.max_timepoint_, 1)
 		self.addWidget(self.name_widget)
 		self.addWidget(self.drawing_widget)
-
-	def TmpModel(self):
-		wave = waveformloader.Waveform("waveform/test_ahb_example.fst")
-		HEIGHT = 20
-		HSTRIDE = 30
-		XRANGE = 1000
-		ofs = 0
-		timepoints = np.arange(XRANGE)*1400
-		green_pen = QtGui.QPen(QtCore.Qt.green)
-		green_pen.setCosmetic(True)
-		text_font = QtGui.QFont("monospace", pointSize=HEIGHT*0.6)
-		for k, v in wave.signal_data_.items():
-			idx, tps, data01, dataxz = v.GetValuesFromTimepoints(timepoints)
-			self.tmp_scene.addLine(0, ofs, XRANGE, ofs, green_pen)
-			self.tmp_scene.addLine(0, ofs+HEIGHT, XRANGE, ofs+HEIGHT, green_pen)
-			for i in range(idx.size):
-				self.tmp_scene.addLine(idx[i], ofs, idx[i], ofs+HEIGHT, green_pen)
-				if i > 0 and idx[i] - idx[i-1] > 10:
-					x = (idx[i]+idx[i-1])*0.5
-					y = ofs-HEIGHT*0.5
-					txt = self.tmp_scene.addText(f"{data01[i]}", text_font)
-					txt.setPos(x, y)
-					txt.setDefaultTextColor("white")
-			ofs += HSTRIDE
