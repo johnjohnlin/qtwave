@@ -49,3 +49,15 @@ class QtWaveModel(QtCore.QAbstractItemModel):
 		if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
 			return "Value" if section == 1 else "Name"
 		return None
+
+class ModuleModelProxyTree(QtCore.QSortFilterProxyModel):
+    def __init__(self):
+        QtCore.QSortFilterProxyModel.__init__(self)
+
+    def filterAcceptsRow(self, row, parent_index):
+        index = self.sourceModel().index(row, 1, parent_index)
+        node = self.sourceModel().data(index, QtCore.Qt.DisplayRole)
+        return node.startswith("module")
+
+    def filterAcceptsColumn(self, column, parent_index):
+        return column == 0

@@ -32,10 +32,12 @@ class QtWave(QtWidgets.QMainWindow):
 		# Left panel
 		self.left_widget = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical, childrenCollapsible=False)
 		self.module_list_model = ModuleWidget.QtWaveModel()
+		self.module_list_proxy = ModuleWidget.ModuleModelProxyTree()
+		self.module_list_proxy.setSourceModel(self.module_list_model)
 		self.module_list_widget = QtWidgets.QTreeView(
 			headerHidden=True,
 			minimumWidth=50,
-			model=self.module_list_model
+			model=self.module_list_proxy
 		)
 		self.signal_list_widget = QtWidgets.QTableView(
 			minimumWidth=50,
