@@ -11,7 +11,7 @@ class QtWaveModel(QtCore.QAbstractItemModel):
 		if node_index.column() > 0:
 			return 0
 		node = node_index.internalPointer() if node_index.isValid() else self.wave_.root_
-		return len(node.children_)
+		return len(node.module_children_)
 
 	def columnCount(self, node_index):
 		return 2
@@ -20,8 +20,8 @@ class QtWaveModel(QtCore.QAbstractItemModel):
 		if not self.hasIndex(row, column, parent_index):
 			return QtCore.QModelIndex()
 		parent = parent_index.internalPointer() if parent_index.isValid() else self.wave_.root_
-		if row < len(parent.children_):
-			return self.createIndex(row, column, parent.children_[row])
+		if row < len(parent.module_children_):
+			return self.createIndex(row, column, parent.module_children_[row])
 		else:
 			return QtCore.QModelIndex()
 
@@ -47,17 +47,66 @@ class QtWaveModel(QtCore.QAbstractItemModel):
 
 	def headerData(self, section, orientation, role):
 		if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-			return "Value" if section == 1 else "Name"
+			return "Value" if section == 1 else "Type"
 		return None
 
-class ModuleModelProxyTree(QtCore.QSortFilterProxyModel):
-    def __init__(self):
-        QtCore.QSortFilterProxyModel.__init__(self)
+# show the signal list, TODO: the name sucks
+class QtSignalListModel(QtCore.QAbstractTableModel):
+	def __init__(self):
+		QtCore.QAbstractTableModel.__init__(self)
+		self.signal_list = list()
 
-    def filterAcceptsRow(self, row, parent_index):
-        index = self.sourceModel().index(row, 1, parent_index)
-        node = self.sourceModel().data(index, QtCore.Qt.DisplayRole)
-        return node.startswith("module")
+	def rowCount(self, node_index):
+		return len(self.signal_list)
 
-    def filterAcceptsColumn(self, column, parent_index):
-        return column == 0
+	def columnCount(self, node_index):
+		return 2
+
+	def data(self, node_index, role):
+		if role == QtCore.Qt.DisplayRole:
+			col = node_index.column()
+			sig = self.signal_list[node_index.row()]
+			if col == 0:
+				return sig.name_
+			else:
+				return sig.signal_data_.nbit_
+		return None
+
+	def ResetModel(self, signal_list):
+		self.beginResetModel()
+		self.signal_list = signal_list
+		self.endResetModel()
+
+	def headerData(self, section, orientation, role):
+		if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+			return "Bit" if section == 1 else "Name"
+		return None
+
+class SignalListWidget(QtWidgets.QSplitter):
+	def __init__(self):
+		super().__init__(QtCore.Qt.Orientation.Vertical, childrenCollapsible=False)
+		self.module_tree_model = QtWaveModel()
+		self.signal_list_model = QtSignalListModel()
+		self.module_tree_widget = QtWidgets.QTreeView(
+			minimumWidth=50,
+			model=self.module_tree_model
+		)
+		self.module_tree_widget.selectionModel().selectionChanged.connect(self.scng)
+		self.module_tree_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		self.module_tree_widget.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+		self.module_tree_widget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+		self.signal_list_widget = QtWidgets.QTableView(
+			minimumWidth=50,
+			model=self.signal_list_model
+		)
+		self.signal_list_widget.verticalHeader().hide()
+		self.signal_list_widget.horizontalHeader().setStretchLastSection(True)
+		self.signal_list_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+		self.signal_list_widget.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+		self.signal_list_widget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+		self.addWidget(self.module_tree_widget)
+		self.addWidget(self.signal_list_widget)
+
+	def scng(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection):
+		sig = selected.indexes()[0].internalPointer()
+		self.signal_list_model.ResetModel(sig.signal_children_)

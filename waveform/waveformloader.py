@@ -54,12 +54,13 @@ class SignalData(object):
 
 class SignalHierarchy(object):
 	def __init__(self, parent, signal_data, htyp, styp=0, name=str()):
-		self.row_ = 0 if parent is None else len(parent.children_)
+		self.row_ = 0 if parent is None else len(parent.module_children_)
 		self.parent_ = parent
 		self.name_ = name
 		self.hier_type_ = htyp
 		self.secondary_type_ = styp
-		self.children_ = list()
+		self.module_children_ = list()
+		self.signal_children_ = list()
 		self.signal_data_ = signal_data
 
 	@property
@@ -75,12 +76,12 @@ class SignalHierarchy(object):
 				child = SignalHierarchy(
 					st[-1], None, hier_type, secondary_type, name
 				)
-				st[-1].children_.append(child)
+				st[-1].module_children_.append(child)
 				st.append(child)
 			elif hier_type == 1: # FST_HT_UPSCOPE
 				st.pop()
 			elif hier_type == 2: # FST_HT_VAR
-				st[-1].children_.append(SignalHierarchy(
+				st[-1].signal_children_.append(SignalHierarchy(
 					st[-1], signal_data[sig_idx], hier_type, secondary_type, name
 				))
 		return st[0]

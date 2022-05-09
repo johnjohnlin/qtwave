@@ -24,33 +24,16 @@ def TraverseMenu(parent, menu_dict):
 class QtWave(QtWidgets.QMainWindow):
 	def __init__(self, parent = None):
 		super().__init__(parent)
+		# Toolbar widgets
 		self.menu_bar = self.CreateMenuBar()
 		self.status_bar = self.CreateStatusBar()
-		self.tool_bar = None
-		self.central_widget = QtWidgets.QSplitter()
-
-		# Left panel
-		self.left_widget = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical, childrenCollapsible=False)
-		self.module_list_model = ModuleWidget.QtWaveModel()
-		self.module_list_proxy = ModuleWidget.ModuleModelProxyTree()
-		self.module_list_proxy.setSourceModel(self.module_list_model)
-		self.module_list_widget = QtWidgets.QTreeView(
-			headerHidden=True,
-			minimumWidth=50,
-			model=self.module_list_proxy
-		)
-		self.signal_list_widget = QtWidgets.QTableView(
-			minimumWidth=50,
-			model=self.module_list_model
-		)
-		self.left_widget.addWidget(self.module_list_widget)
-		self.left_widget.addWidget(self.signal_list_widget)
-
-		# Right Panel
+		# self.tool_bar = None
+		# Left and right widgets
+		self.module_widget = ModuleWidget.SignalListWidget()
 		self.waveform_widget = WaveformWidget.WaveformWidget()
-
 		# Central Widget
-		self.central_widget.addWidget(self.left_widget)
+		self.central_widget = QtWidgets.QSplitter()
+		self.central_widget.addWidget(self.module_widget)
 		self.central_widget.addWidget(self.waveform_widget)
 		self.setCentralWidget(self.central_widget)
 		self.setMenuBar(self.menu_bar)
