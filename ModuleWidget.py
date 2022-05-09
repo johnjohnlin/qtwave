@@ -80,12 +80,18 @@ class WaveformSignalModel(QtCore.QAbstractTableModel):
 			return "Bit" if section == 1 else "Name"
 		return None
 
+class WaveformSignalFilteredModel(QtCore.QSortFilterProxyModel):
+	def __init__(self):
+		QtCore.QSortFilterProxyModel.__init__(self)
+
 class SignalListWidget(QtWidgets.QSplitter):
 	def __init__(self):
 		super().__init__(QtCore.Qt.Orientation.Vertical, childrenCollapsible=False)
 		# model
 		self.module_tree_model = WaveformModuleModel()
 		self.signal_list_model = WaveformSignalModel()
+		self.signal_filter_model = WaveformSignalFilteredModel()
+		self.signal_filter_model.setSourceModel(self.signal_list_model)
 
 		# module tree view
 		self.module_tree_widget = QtWidgets.QTreeView(
@@ -99,15 +105,30 @@ class SignalListWidget(QtWidgets.QSplitter):
 		# signal table view
 		self.signal_list_widget = QtWidgets.QTableView(
 			minimumWidth=50,
-			model=self.signal_list_model
+			model=self.signal_filter_model
 		)
 		self.signal_list_widget.verticalHeader().hide()
 		self.signal_list_widget.horizontalHeader().setStretchLastSection(True)
 		self.signal_list_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 		self.signal_list_widget.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
 		self.signal_list_widget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+		# filter text input
+		self.filter_widget = QtWidgets.QWidget()
+		self.filter_layout = QtWidgets.QHBoxLayout()
+		self.filter_label_widget = QtWidgets.QLabel(self)
+		self.filter_label_widget.setText("Filter: ")
+		self.filter_input_widget = QtWidgets.QLineEdit(
+			minimumWidth = 50
+		)
+		self.filter_input_widget.textChanged.connect(self.signal_filter_model.setFilterFixedString)
+		self.filter_layout.addWidget(self.filter_label_widget)
+		self.filter_layout.addWidget(self.filter_input_widget)
+		self.filter_widget.setLayout(self.filter_layout)
+
+		# add widget
 		self.addWidget(self.module_tree_widget)
 		self.addWidget(self.signal_list_widget)
+		self.addWidget(self.filter_widget)
 
 	def scng(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection):
 		sig = selected.indexes()[0].internalPointer()
