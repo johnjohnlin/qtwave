@@ -1,8 +1,7 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 from waveform import waveformloader
 
-# show the signal list, TODO: the name sucks
-class QtWaveModel(QtCore.QAbstractItemModel):
+class WaveformModuleModel(QtCore.QAbstractItemModel):
 	def __init__(self):
 		QtCore.QAbstractItemModel.__init__(self)
 		self.wave_ = waveformloader.Waveform("waveform/test_ahb_example.fst")
@@ -50,8 +49,7 @@ class QtWaveModel(QtCore.QAbstractItemModel):
 			return "Value" if section == 1 else "Type"
 		return None
 
-# show the signal list, TODO: the name sucks
-class QtSignalListModel(QtCore.QAbstractTableModel):
+class WaveformSignalModel(QtCore.QAbstractTableModel):
 	def __init__(self):
 		QtCore.QAbstractTableModel.__init__(self)
 		self.signal_list = list()
@@ -85,8 +83,11 @@ class QtSignalListModel(QtCore.QAbstractTableModel):
 class SignalListWidget(QtWidgets.QSplitter):
 	def __init__(self):
 		super().__init__(QtCore.Qt.Orientation.Vertical, childrenCollapsible=False)
-		self.module_tree_model = QtWaveModel()
-		self.signal_list_model = QtSignalListModel()
+		# model
+		self.module_tree_model = WaveformModuleModel()
+		self.signal_list_model = WaveformSignalModel()
+
+		# module tree view
 		self.module_tree_widget = QtWidgets.QTreeView(
 			minimumWidth=50,
 			model=self.module_tree_model
@@ -95,6 +96,7 @@ class SignalListWidget(QtWidgets.QSplitter):
 		self.module_tree_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 		self.module_tree_widget.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
 		self.module_tree_widget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+		# signal table view
 		self.signal_list_widget = QtWidgets.QTableView(
 			minimumWidth=50,
 			model=self.signal_list_model
