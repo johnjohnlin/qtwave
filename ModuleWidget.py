@@ -143,9 +143,10 @@ class SignalListWidget(QtWidgets.QSplitter):
 		self.signal_list_model.ResetModel(sig.signal_children_)
 
 	def doubleClickedCallback(self, idx: QtCore.QModelIndex):
-		i = idx.row()
-		name = self.signal_list_model.signal_list[i].name_
-		sig = self.signal_list_model.signal_list[i].signal_data_
+		source_idx = self.signal_filter_model.mapToSource(idx)
+		row = source_idx.row()
+		name = self.signal_list_model.signal_list[row].name_
+		sig = self.signal_list_model.signal_list[row].signal_data_
 		self.signal_double_clicked_signal.emit(name, sig)
 
 	def loadFile(self, fname):
