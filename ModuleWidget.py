@@ -4,7 +4,6 @@ from waveform import waveformloader
 class WaveformModuleModel(QtCore.QAbstractItemModel):
 	def __init__(self):
 		QtCore.QAbstractItemModel.__init__(self)
-		self.wave_ = waveformloader.Waveform("waveform/test_ahb_example.fst")
 
 	def rowCount(self, node_index):
 		if node_index.column() > 0:
@@ -49,6 +48,11 @@ class WaveformModuleModel(QtCore.QAbstractItemModel):
 			return "Value" if section == 1 else "Type"
 		return None
 
+	def ResetModel(self, wave):
+		self.beginResetModel()
+		self.wave_ = wave
+		self.endResetModel()
+
 class WaveformSignalModel(QtCore.QAbstractTableModel):
 	def __init__(self):
 		QtCore.QAbstractTableModel.__init__(self)
@@ -85,6 +89,8 @@ class WaveformSignalFilteredModel(QtCore.QSortFilterProxyModel):
 		QtCore.QSortFilterProxyModel.__init__(self)
 
 class SignalListWidget(QtWidgets.QSplitter):
+	signal_double_clicked_signal = QtCore.Signal(str, waveformloader.SignalData)
+	file_loaded_signal = QtCore.Signal(waveformloader.Waveform)
 	def __init__(self):
 		super().__init__(QtCore.Qt.Orientation.Vertical, childrenCollapsible=False)
 		# model
@@ -98,7 +104,7 @@ class SignalListWidget(QtWidgets.QSplitter):
 			minimumWidth=50,
 			model=self.module_tree_model
 		)
-		self.module_tree_widget.selectionModel().selectionChanged.connect(self.scng)
+		self.module_tree_widget.selectionModel().selectionChanged.connect(self.selectionChangedCallback)
 		self.module_tree_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 		self.module_tree_widget.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
 		self.module_tree_widget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
@@ -112,6 +118,7 @@ class SignalListWidget(QtWidgets.QSplitter):
 		self.signal_list_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 		self.signal_list_widget.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
 		self.signal_list_widget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+		self.signal_list_widget.doubleClicked.connect(self.doubleClickedCallback)
 		# filter text input
 		self.filter_widget = QtWidgets.QWidget()
 		self.filter_layout = QtWidgets.QHBoxLayout()
@@ -129,7 +136,20 @@ class SignalListWidget(QtWidgets.QSplitter):
 		self.addWidget(self.module_tree_widget)
 		self.addWidget(self.signal_list_widget)
 		self.addWidget(self.filter_widget)
+		self.loadFile("waveform/test_ahb_example.fst")
 
-	def scng(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection):
+	def selectionChangedCallback(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection):
 		sig = selected.indexes()[0].internalPointer()
 		self.signal_list_model.ResetModel(sig.signal_children_)
+
+	def doubleClickedCallback(self, idx: QtCore.QModelIndex):
+		i = idx.row()
+		name = self.signal_list_model.signal_list[i].name_
+		sig = self.signal_list_model.signal_list[i].signal_data_
+		self.signal_double_clicked_signal.emit(name, sig)
+
+	def loadFile(self, fname):
+		wave = waveformloader.Waveform(fname)
+		self.signal_list_model.ResetModel(list())
+		self.module_tree_model.ResetModel(wave)
+		self.file_loaded_signal.emit(wave)

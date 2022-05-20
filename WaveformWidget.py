@@ -2,6 +2,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from waveform import waveformloader
 import numpy as np
 
+HEADER_ = 50
 HEIGHT_ = 20
 PREHEIGHT_ = 5
 POSTHEIGHT_ = 5
@@ -32,19 +33,19 @@ class WaveformProxyListModel(QtCore.QAbstractTableModel):
 			return "Value" if section == 1 else "Name"
 		return None
 
+	def insertSignal(self, name, value):
+		n = len(self.name_value_list)
+		dummy = QtCore.QModelIndex()
+		self.beginInsertRows(dummy, n, n)
+		self.name_value_list.append((name, value))
+		self.endInsertRows()
+
 class WaveformModel(object):
 	def __init__(self):
 		self.timepoints_screenspace = None
 		self.proxy_scene = QtWidgets.QGraphicsScene()
 		# TODO shall be tree model
 		self.proxy_list_model = WaveformProxyListModel()
-		self.wave = waveformloader.Waveform("waveform/test_ahb_example.fst")
-		for i, (k, v) in enumerate(self.wave.signal_data_.items()):
-			self.proxy_list_model.name_value_list.append((str(k), "XXX"))
-			witem = WaveformGraphicsItem(self, v)
-			witem.setPos(0, i*STRIDE_+PREHEIGHT_)
-			self.proxy_scene.addItem(witem)
-		self.proxy_scene.setSceneRect(0, 0, self.wave.max_timepoint_, len(self.wave.signal_data_)*STRIDE_)
 
 class WaveformGraphicsView(QtWidgets.QGraphicsView):
 	def __init__(self, *args, **kwargs):
@@ -81,7 +82,7 @@ class WaveformGraphicsItem(QtWidgets.QGraphicsItem):
 		self.signal_data = signal_data
 
 	def boundingRect(self):
-		return QtCore.QRect(0, 0, self.model.wave.max_timepoint_, HEIGHT_)
+		return QtCore.QRect(0, 0, self.model.max_timepoint, HEIGHT_)
 
 	def paint(self, painter, option, parent):
 		graphics_view = parent.parent()
@@ -102,7 +103,7 @@ class WaveformGraphicsItem(QtWidgets.QGraphicsItem):
 		)
 		painter.setTransform(t)
 		# paint at screen space
-		width = np.searchsorted(graphics_view.timepoints, self.model.wave.max_timepoint_)
+		width = np.searchsorted(graphics_view.timepoints, self.model.max_timepoint)
 		painter.drawLine(0, 0, width, 0)
 		painter.drawLine(0, HEIGHT_, width, HEIGHT_)
 		idx, tps, data01, dataxz = self.signal_data.GetValuesFromTimepoints(graphics_view.timepoints)
@@ -120,12 +121,30 @@ class WaveformWidget(QtWidgets.QSplitter):
 		)
 		self.name_widget.verticalHeader().hide()
 		self.name_widget.horizontalHeader().setStretchLastSection(True)
+		self.name_widget.horizontalHeader().setFixedHeight(HEADER_)
+		self.name_widget.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
+		self.name_widget.verticalHeader().setMinimumSectionSize(0)
+		self.name_widget.verticalHeader().setMaximumSectionSize(STRIDE_)
+		self.name_widget.verticalHeader().setDefaultSectionSize(STRIDE_)
 		self.drawing_widget = WaveformGraphicsView(
 			self.model.proxy_scene,
 			minimumWidth = 50
 		)
 		self.drawing_widget.setBackgroundBrush(QtCore.Qt.black)
-		self.drawing_widget.setAlignment(QtCore.Qt.AlignLeft)
-		self.drawing_widget.scale(INIT_WAVEFORM_WIDTH_/self.model.wave.max_timepoint_, 1)
+		self.drawing_widget.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
 		self.addWidget(self.name_widget)
 		self.addWidget(self.drawing_widget)
+		self.drawing_widget.verticalScrollBar().valueChanged.connect(lambda v: self.name_widget.verticalScrollBar().setValue(v/STRIDE_))
+		self.name_widget.verticalScrollBar().valueChanged.connect(lambda v: self.drawing_widget.verticalScrollBar().setValue(v*STRIDE_))
+
+	def setMaxTime(self, max_timepoint):
+		self.model.max_timepoint = max_timepoint
+		self.drawing_widget.scale(INIT_WAVEFORM_WIDTH_/max_timepoint, 1)
+		self.drawing_widget.setSceneRect(0, 0, max_timepoint, 0)
+
+	def addSignal(self, name, signal):
+		witem = WaveformGraphicsItem(self.model, signal)
+		witem.setPos(0, len(self.model.proxy_list_model.name_value_list)*STRIDE_+PREHEIGHT_+HEADER_)
+		self.model.proxy_scene.addItem(witem)
+		self.model.proxy_list_model.insertSignal(name, "XXX")
+		self.drawing_widget.setSceneRect(0, 0, self.model.max_timepoint, len(self.model.proxy_list_model.name_value_list)*STRIDE_+HEADER_)
