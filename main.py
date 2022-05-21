@@ -39,8 +39,10 @@ class QtWave(QtWidgets.QMainWindow):
 		self.setMenuBar(self.menu_bar)
 		self.setStatusBar(self.status_bar)
 		# self.setToolBar(self.menu_bar)
-		self.module_widget.file_loaded_signal.connect(lambda wave: self.waveform_widget.setMaxTime(wave.max_timepoint_))
-		self.module_widget.signal_double_clicked_signal.connect(self.waveform_widget.addSignal)
+		self.module_widget.load_file_signal.connect(
+			lambda wave: self.waveform_widget.model.SetMaxTimepoint(wave.max_timepoint_)
+		)
+		self.module_widget.double_click_wave_signal.connect(self.waveform_widget.model.AddWave)
 		self.module_widget.loadFile("waveform/test_ahb_example.fst")
 
 	def CreateMenuBar(self):

@@ -89,8 +89,8 @@ class WaveformSignalFilteredModel(QtCore.QSortFilterProxyModel):
 		QtCore.QSortFilterProxyModel.__init__(self)
 
 class SignalListWidget(QtWidgets.QSplitter):
-	signal_double_clicked_signal = QtCore.Signal(str, waveformloader.SignalData)
-	file_loaded_signal = QtCore.Signal(waveformloader.Waveform)
+	double_click_wave_signal = QtCore.Signal(str, waveformloader.SignalData)
+	load_file_signal = QtCore.Signal(waveformloader.Waveform)
 	def __init__(self):
 		super().__init__(QtCore.Qt.Orientation.Vertical, childrenCollapsible=False)
 		# model
@@ -147,10 +147,10 @@ class SignalListWidget(QtWidgets.QSplitter):
 		row = source_idx.row()
 		name = self.signal_list_model.signal_list[row].name_
 		sig = self.signal_list_model.signal_list[row].signal_data_
-		self.signal_double_clicked_signal.emit(name, sig)
+		self.double_click_wave_signal.emit(name, sig)
 
 	def loadFile(self, fname):
 		wave = waveformloader.Waveform(fname)
 		self.signal_list_model.ResetModel(list())
 		self.module_tree_model.ResetModel(wave)
-		self.file_loaded_signal.emit(wave)
+		self.load_file_signal.emit(wave)
