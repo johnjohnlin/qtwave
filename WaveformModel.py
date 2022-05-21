@@ -2,6 +2,45 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from Setting import GetSetting
 import numpy as np
 
+class TimeAxisGraphicsItem(QtWidgets.QGraphicsItem):
+	def __init__(self, model):
+		super().__init__()
+		self.model = model # refer to model for common variables across the waveform
+
+	def boundingRect(self):
+		return QtCore.QRect(0, 0, self.model.SceneWidth(), self.model.SceneHeight())
+
+	def paint(self, painter, option, parent):
+		timepoints = self.model.screenspace_timepoints
+		assert not timepoints is None
+		if timepoints.size < 2:
+			return
+		time_diff = timepoints[-1] - timepoints[0]
+		screenspace_time_diff = timepoints.size - 1
+		# compute the time
+		timescale = 1
+		while (
+			screenspace_time_diff * timescale <
+			self.model.setting.Display.maximal_zoom * time_diff
+		):
+			timescale *= 10
+		painter.save()
+		# color scheme
+		pink_pen = QtGui.QPen(QtCore.Qt.magenta)
+		pink_blue = QtGui.QPen(QtCore.Qt.blue)
+		painter.resetTransform()
+		integer_timepoints = np.arange(
+			timepoints[:1] // timescale,
+			timepoints[-1:] // timescale + 1,
+			dtype = 'u8'
+		) * timescale
+		for i in np.searchsorted(timepoints, integer_timepoints, side='right'):
+			painter.setPen(pink_pen)
+			painter.drawLine(i, 0, i, self.model.setting.Display.timeaxis_height)
+			painter.setPen(pink_blue)
+			painter.drawLine(i, self.model.setting.Display.timeaxis_height, i, parent.parent().height())
+		painter.restore()
+
 class WaveGraphicsItem(QtWidgets.QGraphicsItem):
 	def __init__(self, model, wave_data):
 		super().__init__()
@@ -12,6 +51,8 @@ class WaveGraphicsItem(QtWidgets.QGraphicsItem):
 		return QtCore.QRect(0, 0, self.model.max_timepoint, self.model.setting.Display.wave_height)
 
 	def paint(self, painter, option, parent):
+		if self.pos().y() < 0:
+			return
 		timepoints = self.model.screenspace_timepoints
 		assert not timepoints is None
 		wave_height = self.model.setting.Display.wave_height
@@ -79,6 +120,7 @@ class WaveformModel(QtCore.QObject):
 		self.screenspace_cursor_time = 0
 		self.cursor_time = 0
 		self.proxy_scene = QtWidgets.QGraphicsScene()
+		self.proxy_scene.addItem(TimeAxisGraphicsItem(self))
 		# TODO shall be tree model
 		self.proxy_list_model = WaveformProxyListModel()
 
@@ -106,3 +148,9 @@ class WaveformModel(QtCore.QObject):
 
 	def NumSignal(self):
 		return len(self.proxy_list_model.name_value_list)
+
+	def SceneWidth(self):
+		return self.max_timepoint
+
+	def SceneHeight(self):
+		return self.NumSignal() * self.setting.Display.wave_stride + self.setting.Display.timeaxis_height
