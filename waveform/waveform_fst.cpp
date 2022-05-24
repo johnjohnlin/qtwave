@@ -11,7 +11,6 @@ static void fst_callback1(
 	const unsigned char *value_str
 ) {
 	auto waveform = static_cast<Waveform*>(user_callback_data_pointer);
-	waveform->max_timepoint_ = max(waveform->max_timepoint_, time);
 	auto it = waveform->signals_.find(handle);
 	if (it != waveform->signals_.end()) {
 		it->second->Pack4ValueBinaryString(time, (const char*)value_str);
@@ -23,7 +22,6 @@ static void fst_callback2(
 	const unsigned char *value_str, uint32_t len
 ) {
 	auto waveform = static_cast<Waveform*>(user_callback_data_pointer);
-	waveform->max_timepoint_ = max(waveform->max_timepoint_, time);
 	auto it = waveform->signals_.find(handle);
 	if (it != waveform->signals_.end()) {
 		it->second->Pack4ValueBinaryString(time, (const char*)value_str, len);
@@ -37,6 +35,7 @@ int ParseFst(const char *file_name, unique_ptr<Waveform> &waveform) {
 	}
 	waveform.reset(new Waveform);
 	waveform->timescale_ = fstReaderGetTimescale(ctx);
+	waveform->max_timepoint_ = max(waveform->max_timepoint_, fstReaderGetEndTime(ctx));
 	auto &hier_cmd = waveform->hier_cmd_;
 	fstHier *hier;
 	fstReaderIterateHierRewind(ctx);

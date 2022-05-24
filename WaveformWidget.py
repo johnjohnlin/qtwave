@@ -38,7 +38,7 @@ class WaveformWidget(QtWidgets.QSplitter):
 		self.model.update_width_signal.connect(
 			lambda w: self.drawing_widget.scale(self.setting.Display.initial_wave_width/w, 1)
 		)
-		self.drawing_widget.update_screenspce_timepoints_signal.connect(
+		self.drawing_widget.update_view_geometry.connect(
 			self.model.SetScreenspaceTimepoints
 		)
 		# Lock the scrollbar

@@ -1,5 +1,6 @@
 from waveform.waveformloader_c import ParseFstWaveform, ParseVcdWaveform
 import numpy as np
+
 class SignalData(object):
 	# TODO: 64+ bit signal
 	# TODO: Data write
@@ -39,18 +40,6 @@ class SignalData(object):
 			(self.data01_[array_idx] >> rshamt) & self.kMASK_,
 			None if self.dataxz_ is None else (self.dataxz_[array_idx] >> rshamt) & self.kMASK_,
 		)
-
-	def GetValuesFromTimepoints(self, timepoints):
-		assert timepoints.ndim == 1 and timepoints.size > 0 and (timepoints[1:] - timepoints[:-1] >= 0).all()
-		i = np.searchsorted(self.timepoints_, timepoints, side='right')
-		# 0 means the timepoint appears before the first sample, so prepend = 0 remove the sample
-		nonzero_timepoints_bool = np.diff(i, prepend=0) != 0
-		# return the x-axis (in pixel) where the signal changes
-		nonzero_timepoints = np.nonzero(nonzero_timepoints_bool)[0]
-		i = i[nonzero_timepoints_bool]
-		i -= 1
-		assert (i >= 0).all()
-		return (nonzero_timepoints, *self.__getitem__(i))
 
 class SignalHierarchy(object):
 	def __init__(self, parent, signal_data, hier_type, subtype1 = 0, subtype2 = 0, name = str()):
