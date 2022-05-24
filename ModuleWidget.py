@@ -4,8 +4,11 @@ from waveform import waveformloader
 class WaveformModuleModel(QtCore.QAbstractItemModel):
 	def __init__(self):
 		QtCore.QAbstractItemModel.__init__(self)
+		self.wave_ = None
 
 	def rowCount(self, node_index):
+		if self.wave_ is None:
+			return 0
 		if node_index.column() > 0:
 			return 0
 		node = node_index.internalPointer() if node_index.isValid() else self.wave_.root_
@@ -91,6 +94,7 @@ class WaveformSignalFilteredModel(QtCore.QSortFilterProxyModel):
 class SignalListWidget(QtWidgets.QSplitter):
 	double_click_wave_signal = QtCore.Signal(str, waveformloader.SignalData)
 	load_file_signal = QtCore.Signal(waveformloader.Waveform)
+
 	def __init__(self):
 		super().__init__(QtCore.Qt.Orientation.Vertical, childrenCollapsible=False)
 		# model
@@ -136,7 +140,6 @@ class SignalListWidget(QtWidgets.QSplitter):
 		self.addWidget(self.module_tree_widget)
 		self.addWidget(self.signal_list_widget)
 		self.addWidget(self.filter_widget)
-		self.loadFile("waveform/test_ahb_example.fst")
 
 	def selectionChangedCallback(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection):
 		sig = selected.indexes()[0].internalPointer()

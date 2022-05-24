@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import WaveformWidget
 import ModuleWidget
+import os
 
 def TraverseMenu(parent, menu_dict):
 	for k, v in menu_dict.items():
@@ -43,13 +44,19 @@ class QtWave(QtWidgets.QMainWindow):
 			lambda wave: self.waveform_widget.model.SetMaxTimepoint(wave.max_timepoint_)
 		)
 		self.module_widget.double_click_wave_signal.connect(self.waveform_widget.model.AddWave)
-		self.module_widget.loadFile("waveform/test_ahb_example.fst")
+
+	def OpenFile(self):
+		dialog = (self)
+		file = QtWidgets.QFileDialog.getOpenFileName(self, "Open Waveform", os.getcwd(), "waveform file (*.fst *.vcd)")
+		filename = file[0]
+		if filename:
+			self.module_widget.loadFile(filename)
 
 	def CreateMenuBar(self):
 		menu_bar = QtWidgets.QMenuBar(self)
 		menu_items = {
 			"&File": {
-				"&Open": lambda: self.status_bar.showMessage("1"),
+				"&Open": lambda: self.OpenFile(),
 				"&Save": lambda: self.status_bar.showMessage("2"),
 				"&Exit": lambda: self.status_bar.showMessage("3"),
 			},
