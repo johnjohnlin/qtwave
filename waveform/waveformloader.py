@@ -53,12 +53,13 @@ class SignalData(object):
 		return (nonzero_timepoints, *self.__getitem__(i))
 
 class SignalHierarchy(object):
-	def __init__(self, parent, signal_data, htyp, styp=0, name=str()):
+	def __init__(self, parent, signal_data, hier_type, subtype1 = 0, subtype2 = 0, name = str()):
 		self.row_ = 0 if parent is None else len(parent.module_children_)
 		self.parent_ = parent
 		self.name_ = name
-		self.hier_type_ = htyp
-		self.secondary_type_ = styp
+		self.hier_type_ = hier_type
+		self.subtype1_ = subtype1
+		self.subtype2_ = subtype2
 		self.module_children_ = list()
 		self.signal_children_ = list()
 		self.signal_data_ = signal_data
@@ -71,10 +72,11 @@ class SignalHierarchy(object):
 	def FromHierarchyCommand(hier_cmds, signal_data):
 		root = SignalHierarchy(None, None, -1) # -1 for root
 		st = [root]
-		for hier_type, secondary_type, sig_idx, name in hier_cmds:
+		# Please refer to C++ struct HierarchyCommand for the variable meaning
+		for hier_type, subtype1, subtype2, sig_idx, name in hier_cmds:
 			if hier_type == 0: # FST_HT_SCOPE
 				child = SignalHierarchy(
-					st[-1], None, hier_type, secondary_type, name
+					st[-1], None, hier_type, subtype1, subtype2, name
 				)
 				st[-1].module_children_.append(child)
 				st.append(child)
@@ -82,7 +84,7 @@ class SignalHierarchy(object):
 				st.pop()
 			elif hier_type == 2: # FST_HT_VAR
 				st[-1].signal_children_.append(SignalHierarchy(
-					st[-1], signal_data[sig_idx], hier_type, secondary_type, name
+					st[-1], signal_data[sig_idx], hier_type, subtype1, subtype2, name
 				))
 		return st[0]
 

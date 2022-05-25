@@ -112,12 +112,14 @@ static PyObject* HierarchyCommandToPythonList(const vector<HierarchyCommand> &hi
 		hier_cmd.begin(), hier_cmd.end(), v.begin(),
 		[](const HierarchyCommand& h) -> PyObject* {
 			PyObject *hier_type_py = PyLong_FromLong(h.hier_type_);
-			PyObject *secondary_type_py = PyLong_FromLong(h.secondary_type_);
+			PyObject *subtype1_py = PyLong_FromLong(h.subtype1_);
+			PyObject *subtype2_py = PyLong_FromLong(h.subtype2_);
 			PyObject *signal_idx_py = PyLong_FromLong(h.signal_idx_);
 			PyObject *name_py = PyUnicode_FromString(h.name_.c_str());
 			return VectorToPythonTuple({
 				hier_type_py,
-				secondary_type_py,
+				subtype1_py,
+				subtype2_py,
 				signal_idx_py,
 				name_py
 			});

@@ -40,7 +40,7 @@ class WaveformModuleModel(QtCore.QAbstractItemModel):
 				data = node.name_
 			else:
 				if node.hier_type_ == 0:
-					data = f"module ({node.secondary_type_})"
+					data = f"module ({node.subtype1_})"
 				else:
 					data = str(node.signal_data_[0][1])
 			return data
