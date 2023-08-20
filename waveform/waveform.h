@@ -61,7 +61,11 @@ public:
 };
 
 struct HierarchyCommand {
-	int hier_type_, secondary_type_;
+	// Mapped from union fstHier
+	//    hier_type_ -> htyp
+	//    subtype1_ -> u.scope.typ, u.var.typ, u.attr.typ
+	//    subtype2_ -> 0, u.var.direction, u.attr.subtyp
+	int hier_type_, subtype1_, subtype2_;
 	// Only for signals
 	uint64_t signal_idx_;
 	std::string name_;

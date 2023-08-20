@@ -4,8 +4,11 @@ from waveform import waveformloader
 class WaveformModuleModel(QtCore.QAbstractItemModel):
 	def __init__(self):
 		QtCore.QAbstractItemModel.__init__(self)
+		self.wave_ = None
 
 	def rowCount(self, node_index):
+		if self.wave_ is None:
+			return 0
 		if node_index.column() > 0:
 			return 0
 		node = node_index.internalPointer() if node_index.isValid() else self.wave_.root_
@@ -37,7 +40,7 @@ class WaveformModuleModel(QtCore.QAbstractItemModel):
 				data = node.name_
 			else:
 				if node.hier_type_ == 0:
-					data = f"module ({node.secondary_type_})"
+					data = f"module ({node.subtype1_})"
 				else:
 					data = str(node.signal_data_[0][1])
 			return data
@@ -89,8 +92,9 @@ class WaveformSignalFilteredModel(QtCore.QSortFilterProxyModel):
 		QtCore.QSortFilterProxyModel.__init__(self)
 
 class SignalListWidget(QtWidgets.QSplitter):
-	signal_double_clicked_signal = QtCore.Signal(str, waveformloader.SignalData)
-	file_loaded_signal = QtCore.Signal(waveformloader.Waveform)
+	double_click_wave_signal = QtCore.Signal(str, waveformloader.SignalData)
+	load_file_signal = QtCore.Signal(waveformloader.Waveform)
+
 	def __init__(self):
 		super().__init__(QtCore.Qt.Orientation.Vertical, childrenCollapsible=False)
 		# model
@@ -136,7 +140,6 @@ class SignalListWidget(QtWidgets.QSplitter):
 		self.addWidget(self.module_tree_widget)
 		self.addWidget(self.signal_list_widget)
 		self.addWidget(self.filter_widget)
-		self.loadFile("waveform/test_ahb_example.fst")
 
 	def selectionChangedCallback(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection):
 		sig = selected.indexes()[0].internalPointer()
@@ -147,10 +150,10 @@ class SignalListWidget(QtWidgets.QSplitter):
 		row = source_idx.row()
 		name = self.signal_list_model.signal_list[row].name_
 		sig = self.signal_list_model.signal_list[row].signal_data_
-		self.signal_double_clicked_signal.emit(name, sig)
+		self.double_click_wave_signal.emit(name, sig)
 
 	def loadFile(self, fname):
 		wave = waveformloader.Waveform(fname)
 		self.signal_list_model.ResetModel(list())
 		self.module_tree_model.ResetModel(wave)
-		self.file_loaded_signal.emit(wave)
+		self.load_file_signal.emit(wave)

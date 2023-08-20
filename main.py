@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import WaveformWidget
 import ModuleWidget
+import os
 
 def TraverseMenu(parent, menu_dict):
 	for k, v in menu_dict.items():
@@ -39,15 +40,23 @@ class QtWave(QtWidgets.QMainWindow):
 		self.setMenuBar(self.menu_bar)
 		self.setStatusBar(self.status_bar)
 		# self.setToolBar(self.menu_bar)
-		self.module_widget.file_loaded_signal.connect(lambda wave: self.waveform_widget.setMaxTime(wave.max_timepoint_))
-		self.module_widget.signal_double_clicked_signal.connect(self.waveform_widget.addSignal)
-		self.module_widget.loadFile("waveform/test_ahb_example.fst")
+		self.module_widget.load_file_signal.connect(
+			lambda wave: self.waveform_widget.model.SetMaxTimepoint(wave.max_timepoint_)
+		)
+		self.module_widget.double_click_wave_signal.connect(self.waveform_widget.model.AddWave)
+
+	def OpenFile(self):
+		dialog = (self)
+		file = QtWidgets.QFileDialog.getOpenFileName(self, "Open Waveform", os.getcwd(), "waveform file (*.fst *.vcd)")
+		filename = file[0]
+		if filename:
+			self.module_widget.loadFile(filename)
 
 	def CreateMenuBar(self):
 		menu_bar = QtWidgets.QMenuBar(self)
 		menu_items = {
 			"&File": {
-				"&Open": lambda: self.status_bar.showMessage("1"),
+				"&Open": lambda: self.OpenFile(),
 				"&Save": lambda: self.status_bar.showMessage("2"),
 				"&Exit": lambda: self.status_bar.showMessage("3"),
 			},
