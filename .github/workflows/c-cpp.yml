@@ -15,6 +15,7 @@ jobs:
       with:
         packages: cmake libgoogle-glog-dev g++ gcc libgtest-dev
         version: 1.0
+        debug: true
     - name: install
       run: apt install
     - name: cmake
