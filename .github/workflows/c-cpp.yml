@@ -17,7 +17,7 @@ jobs:
       run: |
         mkdir build;
         cd build;
-        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake ../waveform -DCMAKE_BUILD_TYPE=Release
     - name: make
       run: cd build && make -j
     - name: unittest
