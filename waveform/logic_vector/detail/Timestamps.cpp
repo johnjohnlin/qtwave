@@ -1,5 +1,5 @@
 // Direct include
-#include "logic_vector/detail/HasTimestamps.h"
+#include "logic_vector/detail/Timestamps.h"
 // C system headers
 // C++ standard library headers
 #include <algorithm>
