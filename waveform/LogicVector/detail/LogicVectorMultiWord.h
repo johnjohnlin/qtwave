@@ -1,8 +1,13 @@
 #pragma once
-#include "logic_vector/logic_str.h"
+// Direct include
+// C system headers
+#include "logic_vector/detail/LogicString.h"
 #include "logic_vector/logic_vector_base.h"
-#include "logging.h"
+// C++ standard library headers
 #include <vector>
+// Other libraries' .h files.
+// Your project's .h files.
+#include "logging.h"
 
 namespace waveform {
 
