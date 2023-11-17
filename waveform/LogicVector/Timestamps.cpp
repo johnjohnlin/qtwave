@@ -9,6 +9,8 @@
 namespace waveform {
 using namespace std;
 
+constexpr unsigned kIndexOff = unsigned(SpecialIndex::eOff);
+
 typedef vector<int64_t>::const_iterator IT;
 static inline
 IT upper_bound_optimized(IT first, IT last, unsigned val) {
@@ -77,30 +79,40 @@ static void SetIndexOffByDumpoff(
 }
 
 void SampleIndexAndTimeWithDumpoff(
-	const Timestamps& screenspace,
-	const Timestamps& dumpoff, // timestamps $dumpoff is called
-	const TimestampSampleEntry& sample_entry
+	const Timestamps& screenspace_timestamps,
+	const Timestamps& dumpoff_timestamps, // timestamps $dumpoff is called
+	std::vector<TimestampSampleEntry> sample_entries // multiple signals in VCD
 ) {
-	std::vector<unsigned> dumpoff_indices;
+	// first, sample from dumpoff timestamps, obtaining indices and timestamp (drop the indices)
+	vector<unsigned> dumpoff_indices;
 	Timestamps dumpoff_sampled;
-	dumpoff.SampleIndexAndTime(screenspace, dumpoff_indices, dumpoff_sampled);
-	auto [waveform, indices, sampled] = sample_entry;
-	waveform->SampleIndexAndTime(screenspace, *indices, *sampled);
-	SetIndexOffByDumpoff(dumpoff_sampled, *sampled, *indices);
-}
-
-// Similar to SampleIndexAndTimeWithDumpoff, but batch mode
-void BatchSampleIndexAndTimeWithDumpoff(
-	const Timestamps& screenspace,
-	const Timestamps& dumpoff, // timestamps $dumpoff is called
-	const std::vector<TimestampSampleEntry>& sample_entries
-) {
-	std::vector<unsigned> dumpoff_indices;
-	Timestamps dumpoff_sampled;
-	dumpoff.SampleIndexAndTime(screenspace, dumpoff_indices, dumpoff_sampled);
-	for (auto [waveform, indices, sampled]: sample_entries) {
-		waveform->SampleIndexAndTime(screenspace, *indices, *sampled);
-		SetIndexOffByDumpoff(dumpoff_sampled, *sampled, *indices);
+	dumpoff_timestamps.SampleIndexAndTime(screenspace_timestamps, dumpoff_indices, dumpoff_sampled);
+	// second, sample for every entry.
+	// each entry is usually for one signal to be displayed on the screen.
+	vector<unsigned> sampled_indices_tmp; // if pass nullptr, then use this buffer instead
+	for (auto& sample_entry : sample_entries) {
+		auto* waveform_timestamps = sample_entry.waveform_timestamps;
+		auto p_sampled_indices = sample_entry.sampled_indices;
+		auto p_sampled_timestamps = sample_entry.sampled_timestamps;
+		if (p_sampled_indices == nullptr) {
+			if (p_sampled_timestamps == nullptr) {
+				// both output are null, just skip
+				continue;
+			}
+			// if user does not specify the indices use the preallocated one as a buffer
+			p_sampled_indices = &sampled_indices_tmp;
+		}
+		waveform_timestamps->SampleIndexAndTime(
+			screenspace_timestamps,
+			*p_sampled_indices,
+			*p_sampled_timestamps
+		);
+		// merge the results of dumpoff and signal
+		SetIndexOffByDumpoff(
+			dumpoff_sampled,
+			*p_sampled_timestamps,
+			*p_sampled_indices
+		);
 	}
 }
 

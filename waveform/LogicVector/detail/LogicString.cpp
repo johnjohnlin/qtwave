@@ -11,20 +11,20 @@ static inline LogicValue CharToLogicValue(char c) {
 	LogicValue ret;
 	switch (c) {
 		case '0': {
-			ret = LogicValue::v0;
+			ret = LogicValue::e0;
 			break;
 		}
 		case '1': {
-			ret = LogicValue::v1;
+			ret = LogicValue::e1;
 			break;
 		}
 		case 'x':
 		case 'X': {
-			ret = LogicValue::vx;
+			ret = LogicValue::ex;
 			break;
 		}
 		default: {
-			ret = LogicValue::vz;
+			ret = LogicValue::ez;
 			break;
 		}
 	}
@@ -42,7 +42,7 @@ void StrToU64Vector(
 	has_unknown = false;
 	for (unsigned i = 0; i < value_str.size(); ++i) {
 		const unsigned logic_char = value_str[value_str.size()-1-i];
-		const unsigned logic_bit = CharToLogicValue(logic_char);
+		const unsigned logic_bit = unsigned(CharToLogicValue(logic_char));
 		const uint64_t logic_bit_hi = logic_bit>>1;
 		const uint64_t logic_bit_lo = logic_bit&0x1;
 		const unsigned word_position = i/64;

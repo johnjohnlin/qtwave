@@ -11,11 +11,11 @@
 
 namespace waveform {
 
-enum LogicValue : unsigned {
-	v0 = 0,
-	v1 = 1,
-	vx = 2,
-	vz = 3,
+enum class LogicValue {
+	e0 = 0,
+	e1 = 1,
+	ex = 2,
+	ez = 3
 };
 
 struct LogicU64 {

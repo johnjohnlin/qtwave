@@ -11,9 +11,9 @@
 
 namespace waveform {
 
-enum SpecialIndex: unsigned {
-	kIndexOff = -1u, // vcd is turn-off'ed
-//	kIndexNoChange = -2u // signal is the same
+enum class SpecialIndex: unsigned {
+	eOff = -1u, // vcd is turn-off'ed
+//	eNoChange = -2u // signal is the same
 };
 
 class Timestamps {
@@ -80,23 +80,17 @@ public:
 	}
 };
 
-// Struct for launching
+// Struct for launching SampleIndexAndTimeWithDumpoff
 struct TimestampSampleEntry {
-	const Timestamps* waveform;
-	std::vector<unsigned>* indices;
-	Timestamps* sampled;
+	const Timestamps* waveform_timestamps; // input
+	std::vector<unsigned>* sampled_indices; // output
+	Timestamps* sampled_timestamps; // output
 };
 
 void SampleIndexAndTimeWithDumpoff(
 	const Timestamps& screenspace,
 	const Timestamps& dumpoff, // timestamps $dumpoff is called
-	const TimestampSampleEntry& sample_entry // one signal in VCD
-);
-
-void BatchSampleIndexAndTimeWithDumpoff(
-	const Timestamps& screenspace,
-	const Timestamps& dumpoff, // timestamps $dumpoff is called
-	const std::vector<TimestampSampleEntry>& sample_entries // multiple signals in VCD
+	std::vector<TimestampSampleEntry> sample_entries // multiple signals in VCD
 );
 
 } // namespace waveform
