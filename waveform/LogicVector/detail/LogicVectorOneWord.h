@@ -17,7 +17,7 @@ template<typename T>
 class LogicVectorOneWord : public LogicVectorBase {
 	std::vector<T> values_hi_;
 	std::vector<T> values_lo_;
-	unsigned bit_width_;
+	const unsigned bit_width_;
 
 	bool HasAnyUnknown() const {
 		return not values_hi_.empty();

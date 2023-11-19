@@ -8,15 +8,16 @@
 // Other libraries' .h files.
 // Your project's .h files.
 #include "logging.h"
-// #include "LogicVector/detail/LogicVectorPacked.h"
+#include "LogicVector/detail/LogicVectorPacked.h"
 #include "LogicVector/detail/LogicVectorOneWord.h"
-// #include "LogicVector/detail/LogicVectorMultiWord.h"
+#include "LogicVector/detail/LogicVectorMultiWord.h"
 
 namespace waveform {
 
-static std::unique_ptr<LogicVectorBase> CreateLogicVector(unsigned num_bit) {
+static LogicVector CreateLogicVector(unsigned num_bit) {
 	LogicVectorBase *ret = nullptr;
 	if (num_bit <= 4) {
+		ret = new LogicVectorPacked(num_bit);
 	} else if (num_bit <= 8) {
 		ret = new LogicVectorOneWord<uint8_t>(num_bit);
 	} else if (num_bit <= 16) {
@@ -25,6 +26,9 @@ static std::unique_ptr<LogicVectorBase> CreateLogicVector(unsigned num_bit) {
 		ret = new LogicVectorOneWord<uint32_t>(num_bit);
 	} else if (num_bit <= 64) {
 		ret = new LogicVectorOneWord<uint64_t>(num_bit);
+	} else {
+		ret = new LogicVectorOneWord<uint64_t>(num_bit);
+		LOG(WARNING) << "[TODO] long integers are clamped to 64b";
 	}
 	CHECK(ret != nullptr) << num_bit << "-bit integer is not supported yet";
 	return std::unique_ptr<LogicVectorBase>(ret);

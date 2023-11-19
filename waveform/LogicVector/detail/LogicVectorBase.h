@@ -27,6 +27,7 @@ struct LogicVectorBase {
 	unsigned NumU64() { return NumBits()+63/64; }
 };
 
-static std::unique_ptr<LogicVectorBase> CreateLogicVector(unsigned num_bit);
+typedef std::unique_ptr<LogicVectorBase> LogicVector;
+static LogicVector CreateLogicVector(unsigned num_bit);
 
 } // namespace waveform
