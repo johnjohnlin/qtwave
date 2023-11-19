@@ -1,5 +1,5 @@
 // Direct include
-#include "logic_vector/detail/LogicString.h"
+#include "LogicVector/detail/LogicString.h"
 // C system headers
 // C++ standard library headers
 // Other libraries' .h files.
