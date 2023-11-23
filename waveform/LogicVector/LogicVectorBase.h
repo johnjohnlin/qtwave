@@ -16,15 +16,29 @@ struct LogicVectorBase {
 		const char* str, // [N]
 		const unsigned N
 	) = 0;
-	virtual void MultiIndex(
-		const unsigned *idx, // [N]
-		LogicU64 *data, // [N*NumU64()]
-		const unsigned N
+	virtual void Index(
+		const unsigned idx,
+		LogicU64 *data // [NumU64()]
 	) const = 0;
 	virtual unsigned Size() const = 0;
 	virtual unsigned NumBits() const = 0;
 	virtual ~LogicVectorBase() {}
-	unsigned NumU64() { return NumBits()+63/64; }
+
+	// This one is not virtual
+	unsigned NumU64() const { return (NumBits()+63)/64; }
+
+	// This one has default implementation
+	virtual void MultiIndex(
+		const unsigned *idx, // [N]
+		LogicU64 *data, // [N*NumU64()]
+		const unsigned N
+	) const {
+		const unsigned num_u64 = NumU64();
+		for (unsigned i = 0; i < N; ++i) {
+			Index(idx[i], data);
+			data += num_u64;
+		}
+	}
 };
 
 typedef std::unique_ptr<LogicVectorBase> LogicVector;

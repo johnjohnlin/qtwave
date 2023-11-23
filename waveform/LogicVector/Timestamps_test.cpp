@@ -95,41 +95,17 @@ TEST(Sample_test, HandleDumpoff) {
 	};
 	const unsigned N = ts_screenspace.Size();
 
-	// Test
-	{
-		vector<unsigned> sampled_indices;
-		Timestamps sampled_timestamps_;
-		SampleIndexAndTimeWithDumpoff(
-			ts_screenspace, ts_dumpoff,
-			{&ts_value_changes, &sampled_indices, &sampled_timestamps_}
-		);
-		auto& sampled_timestamps = sampled_timestamps_.Get();
-		EXPECT_EQ(sampled_indices.size(), N);
-		EXPECT_EQ(sampled_timestamps.size(), N);
-		for (unsigned i = 0; i < N; ++i) {
-			EXPECT_EQ(sample_indices_gold[i], sampled_indices[i]);
-			if (sample_indices_gold[i] != kIndexOff) {
-				EXPECT_EQ(sampled_timestamps_gold[i], sampled_timestamps[i]);
-			}
-		}
-	}
-
-	// Test (same test, but using batch mode API)
-	{
-		vector<unsigned> sampled_indices;
-		Timestamps sampled_timestamps_;
-		BatchSampleIndexAndTimeWithDumpoff(
-			ts_screenspace, ts_dumpoff,
-			{{&ts_value_changes, &sampled_indices, &sampled_timestamps_}}
-		);
-		auto& sampled_timestamps = sampled_timestamps_.Get();
-		EXPECT_EQ(sampled_indices.size(), N);
-		EXPECT_EQ(sampled_timestamps.size(), N);
-		for (unsigned i = 0; i < N; ++i) {
-			EXPECT_EQ(sample_indices_gold[i], sampled_indices[i]);
-			if (sample_indices_gold[i] != kIndexOff) {
-				EXPECT_EQ(sampled_timestamps_gold[i], sampled_timestamps[i]);
-			}
+	vector<unsigned> sampled_indices;
+	Timestamps sampled_timestamps_;
+	TimestampSampleEntry entries_{&ts_value_changes, &sampled_indices, &sampled_timestamps_};
+	SampleIndexAndTimeWithDumpoff(&ts_screenspace, &ts_dumpoff, &entries_, 1);
+	auto& sampled_timestamps = sampled_timestamps_.Get();
+	EXPECT_EQ(sampled_indices.size(), N);
+	EXPECT_EQ(sampled_timestamps.size(), N);
+	for (unsigned i = 0; i < N; ++i) {
+		EXPECT_EQ(sample_indices_gold[i], sampled_indices[i]);
+		if (sample_indices_gold[i] != kIndexOff) {
+			EXPECT_EQ(sampled_timestamps_gold[i], sampled_timestamps[i]);
 		}
 	}
 }

@@ -88,15 +88,10 @@ struct TimestampSampleEntry {
 };
 
 void SampleIndexAndTimeWithDumpoff(
-	const Timestamps& screenspace,
-	const Timestamps& dumpoff, // timestamps $dumpoff is called
-	const TimestampSampleEntry& sample_entry // one signal in VCD
-);
-
-void BatchSampleIndexAndTimeWithDumpoff(
-	const Timestamps& screenspace,
-	const Timestamps& dumpoff, // timestamps $dumpoff is called
-	const std::vector<TimestampSampleEntry>& sample_entries // multiple signals in VCD
+	const Timestamps* screenspace,
+	const Timestamps* dumpoff, // timestamps $dumpoff is called
+	const TimestampSampleEntry* sample_entries, // [N] multiple signals in VCD
+	const unsigned N
 );
 
 } // namespace waveform

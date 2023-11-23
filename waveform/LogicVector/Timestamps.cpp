@@ -77,29 +77,17 @@ static void SetIndexOffByDumpoff(
 }
 
 void SampleIndexAndTimeWithDumpoff(
-	const Timestamps& screenspace,
-	const Timestamps& dumpoff, // timestamps $dumpoff is called
-	const TimestampSampleEntry& sample_entry
+	const Timestamps* screenspace,
+	const Timestamps* dumpoff, // timestamps $dumpoff is called
+	const TimestampSampleEntry* sample_entries, // [N] multiple signals in VCD
+	const unsigned N
 ) {
 	std::vector<unsigned> dumpoff_indices;
 	Timestamps dumpoff_sampled;
-	dumpoff.SampleIndexAndTime(screenspace, dumpoff_indices, dumpoff_sampled);
-	auto [waveform, indices, sampled] = sample_entry;
-	waveform->SampleIndexAndTime(screenspace, *indices, *sampled);
-	SetIndexOffByDumpoff(dumpoff_sampled, *sampled, *indices);
-}
-
-// Similar to SampleIndexAndTimeWithDumpoff, but batch mode
-void BatchSampleIndexAndTimeWithDumpoff(
-	const Timestamps& screenspace,
-	const Timestamps& dumpoff, // timestamps $dumpoff is called
-	const std::vector<TimestampSampleEntry>& sample_entries
-) {
-	std::vector<unsigned> dumpoff_indices;
-	Timestamps dumpoff_sampled;
-	dumpoff.SampleIndexAndTime(screenspace, dumpoff_indices, dumpoff_sampled);
-	for (auto [waveform, indices, sampled]: sample_entries) {
-		waveform->SampleIndexAndTime(screenspace, *indices, *sampled);
+	dumpoff->SampleIndexAndTime(*screenspace, dumpoff_indices, dumpoff_sampled);
+	for (unsigned i = 0; i < N; ++i) {
+		auto [waveform, indices, sampled] = sample_entries[i];
+		waveform->SampleIndexAndTime(*screenspace, *indices, *sampled);
 		SetIndexOffByDumpoff(dumpoff_sampled, *sampled, *indices);
 	}
 }

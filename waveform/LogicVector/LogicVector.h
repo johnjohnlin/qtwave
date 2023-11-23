@@ -1,6 +1,6 @@
 #pragma once
 // Direct include
-#include "LogicVector/detail/LogicVectorBase.h"
+#include "LogicVector/LogicVectorBase.h"
 // C system headers
 // C++ standard library headers
 #include <cstdint>

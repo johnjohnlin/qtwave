@@ -1,6 +1,6 @@
 #pragma once
 // Direct include
-#include "LogicVector/detail/LogicVectorBase.h"
+#include "LogicVector/LogicVectorBase.h"
 // C system headers
 #include "LogicVector/detail/LogicString.h"
 #include "LogicVector/Timestamps.h"
@@ -98,18 +98,15 @@ public:
 		++size_;
 	}
 
-	void MultiIndex(
-		const unsigned *idx, // [N]
-		LogicU64 *data, // [N*NumU64()]
-		const unsigned N
+	void Index(
+		const unsigned idx,
+		LogicU64 *data // [NumU64()]
 	) const override {
-		for (unsigned i = 0; i < N; ++i, ++data, ++idx) {
-			if (*idx == kIndexOff) {
-				continue;
-			}
-			data->hi = AccessHi(i);
-			data->lo = AccessLo(i);
+		if (idx == kIndexOff) {
+			return;
 		}
+		data->hi = AccessHi(idx);
+		data->lo = AccessLo(idx);
 	}
 
 	unsigned Size() const override {
