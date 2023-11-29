@@ -77,18 +77,16 @@ static void SetIndexOffByDumpoff(
 }
 
 void SampleIndexAndTimeWithDumpoff(
-	const Timestamps* screenspace,
-	const Timestamps* dumpoff, // timestamps $dumpoff is called
-	const TimestampSampleEntry* sample_entries, // [N] multiple signals in VCD
-	const unsigned N
+	const Timestamps& screenspace,
+	const Timestamps& dumpoff, // timestamps $dumpoff is called
+	std::vector<TimestampSampleEntry> sample_entries // multiple signals in VCD
 ) {
 	std::vector<unsigned> dumpoff_indices;
 	Timestamps dumpoff_sampled;
-	dumpoff->SampleIndexAndTime(*screenspace, dumpoff_indices, dumpoff_sampled);
-	for (unsigned i = 0; i < N; ++i) {
-		auto [waveform, indices, sampled] = sample_entries[i];
-		waveform->SampleIndexAndTime(*screenspace, *indices, *sampled);
-		SetIndexOffByDumpoff(dumpoff_sampled, *sampled, *indices);
+	dumpoff.SampleIndexAndTime(screenspace, dumpoff_indices, dumpoff_sampled);
+	for (auto& [waveform, indices, sampled]: sample_entries) {
+		waveform->SampleIndexAndTime(screenspace, indices, *sampled);
+		SetIndexOffByDumpoff(dumpoff_sampled, *sampled, indices);
 	}
 }
 

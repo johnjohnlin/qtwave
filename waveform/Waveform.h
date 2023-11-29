@@ -33,6 +33,8 @@ public:
 	}
 };
 
+struct SignalsSamplerHelper {
+};
 /*
 static void WaveformSample(
 	const Timestamps* screenspace,

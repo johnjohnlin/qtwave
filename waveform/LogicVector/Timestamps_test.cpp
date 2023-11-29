@@ -95,12 +95,11 @@ TEST(Sample_test, HandleDumpoff) {
 	};
 	const unsigned N = ts_screenspace.Size();
 
-	vector<unsigned> sampled_indices;
 	Timestamps sampled_timestamps_;
-	TimestampSampleEntry entries_{&ts_value_changes, &sampled_indices, &sampled_timestamps_};
-	SampleIndexAndTimeWithDumpoff(&ts_screenspace, &ts_dumpoff, &entries_, 1);
+	vector<TimestampSampleEntry> entries_{{&ts_value_changes, {}, &sampled_timestamps_}};
+	SampleIndexAndTimeWithDumpoff(ts_screenspace, ts_dumpoff, entries_);
 	auto& sampled_timestamps = sampled_timestamps_.Get();
-	EXPECT_EQ(sampled_indices.size(), N);
+	EXPECT_EQ(entries_sampled_indices.size(), N);
 	EXPECT_EQ(sampled_timestamps.size(), N);
 	for (unsigned i = 0; i < N; ++i) {
 		EXPECT_EQ(sample_indices_gold[i], sampled_indices[i]);

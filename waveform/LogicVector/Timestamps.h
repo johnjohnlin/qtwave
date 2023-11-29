@@ -83,15 +83,14 @@ public:
 // Struct for launching
 struct TimestampSampleEntry {
 	const Timestamps* waveform;
-	std::vector<unsigned>* indices;
+	std::vector<unsigned> indices;
 	Timestamps* sampled;
 };
 
 void SampleIndexAndTimeWithDumpoff(
-	const Timestamps* screenspace,
-	const Timestamps* dumpoff, // timestamps $dumpoff is called
-	const TimestampSampleEntry* sample_entries, // [N] multiple signals in VCD
-	const unsigned N
+	const Timestamps& screenspace,
+	const Timestamps& dumpoff, // timestamps $dumpoff is called
+	std::vector<TimestampSampleEntry> sample_entries // multiple signals in VCD
 );
 
 } // namespace waveform
