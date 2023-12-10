@@ -33,7 +33,8 @@ public:
 	}
 };
 
-struct SignalsSamplerHelper {
+struct FSTReaderWrapper {
+	FSTReaderWrapper(const char* fname) {}
 };
 /*
 static void WaveformSample(
@@ -44,5 +45,19 @@ static void WaveformSample(
 ) {
 }
 */
+extern "C" {
+
+FSTReaderWrapper* FSTReaderNew(const char* fname) {
+	return new FSTReaderWrapper(fname);
+}
+
+unsigned FSTReaderListHeaders() {
+}
+
+void FSTReaderDelete(FSTReaderWrapper* fst_reader) {
+	delete fst_reader;
+}
+
+}
 
 } // namespace waveform
