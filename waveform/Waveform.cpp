@@ -2,10 +2,14 @@
 // Direct include
 // C system headers
 // C++ standard library headers
+#include <vector>
 // Other libraries' .h files.
+#include "logging.h"
+#include "fstapi.h"
 // Your project's .h files.
 #include "LogicVector/LogicVectorBase.h"
 #include "LogicVector/Timestamps.h"
+using namespace std;
 
 namespace waveform {
 
@@ -15,7 +19,7 @@ class Signal {
 	Timestamps timestamps_;
 public:
 	Signal(unsigned num_bits):
-		logic_(std::move(CreateLogicVector(num_bits)))
+		logic_(CreateLogicVector(num_bits))
 	{
 	}
 	~Signal() {}
@@ -33,31 +37,79 @@ public:
 	}
 };
 
-struct FSTReaderWrapper {
-	FSTReaderWrapper(const char* fname) {}
-};
-/*
-static void WaveformSample(
-	const Timestamps* screenspace,
-	const Timestamps* dumpoff,
-	vectorSignal
-	const TimestampSampleEntry* sample_entries
+void value_change_callback(
+	void *user_callback_data_pointer,
+	uint64_t time,
+	fstHandle facidx,
+	const unsigned char *value
 ) {
 }
-*/
+
+void value_change_callback_varlen(
+	void *user_callback_data_pointer,
+	uint64_t time,
+	fstHandle facidx,
+	const unsigned char *value,
+	uint32_t len
+) {
+}
+
+struct FSTReaderWrapper {
+	struct CStruct {
+	} cstruct;
+	vector<Signal> signals;
+	Timestamps dumpoff_timestamps;
+	void *fst_ctx;
+
+	void ParseHierarchy() {
+		fstHier* hier;
+		while ((hier = fstReaderIterateHier(fst_ctx)) != nullptr) {
+			switch (hier->htyp) {
+				case FST_HT_SCOPE: {
+				}
+				case FST_HT_UPSCOPE: {
+				}
+				case FST_HT_VAR: {
+				}
+				default: break;
+			}
+		}
+	}
+
+	void ParseSignal() {
+		fstReaderSetFacProcessMaskAll(fst_ctx);
+		fstReaderIterBlocks2(
+			fst_ctx,
+			value_change_callback,
+			value_change_callback_varlen,
+			nullptr,
+			nullptr
+		);
+	}
+
+	FSTReaderWrapper(const char* fname) {
+		fst_ctx = CHECK_NOTNULL(fstReaderOpen(fname));
+		ParseHierarchy();
+		ParseSignal();
+	}
+	CStruct* GetCStruct() {
+		return &cstruct;
+	}
+	~FSTReaderWrapper() {
+		fstReaderClose(fst_ctx);
+	}
+};
+
+} // namespace waveform
+
 extern "C" {
 
-FSTReaderWrapper* FSTReaderNew(const char* fname) {
-	return new FSTReaderWrapper(fname);
+waveform::FSTReaderWrapper* FSTReader_new(const char* fname) {
+	return new waveform::FSTReaderWrapper(fname);
 }
 
-unsigned FSTReaderListHeaders() {
-}
-
-void FSTReaderDelete(FSTReaderWrapper* fst_reader) {
+void FSTReader_delete(waveform::FSTReaderWrapper* fst_reader) {
 	delete fst_reader;
 }
 
 }
-
-} // namespace waveform
