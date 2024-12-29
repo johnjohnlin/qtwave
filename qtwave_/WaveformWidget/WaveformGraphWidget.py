@@ -1,4 +1,3 @@
-# import math
 from PyQt6.QtGui import (
 	QColor,
 	QPaintEvent,
@@ -17,17 +16,22 @@ from PyQt6.QtWidgets import (
 	QWidget,
 )
 from qtwave_.WaveformWidget.WaveGraphicsItem import (
+	PaintingAreaInfo,
 	AbstractTimestampSampledGraphicsItem,
 	RulerGraphicsItem,
+	OneBitGraphicsItem,
+	OneBitSignal,
 )
 import numpy as np
 from typing import *
-import math
+import math, itertools
 
 class WaveformGraphWidget(QAbstractScrollArea):
 	viewport : QWidget
+	painting_area_info : PaintingAreaInfo
+	# graphic items
 	ruler : RulerGraphicsItem
-	screenspace_step_size : float
+	signals : List[AbstractTimestampSampledGraphicsItem]
 
 	def __init__(self):
 		super().__init__()
@@ -39,19 +43,42 @@ class WaveformGraphWidget(QAbstractScrollArea):
 		vsb = self.verticalScrollBar()
 		vsb.setPageStep(self.viewport.height())
 		vsb.setMaximum(3000-self.viewport.height())
+		self.painting_area_info = PaintingAreaInfo()
+		self.ruler = RulerGraphicsItem(40)
+		self.signals = list()
+
+		self.ResetMaxTimestamp(100000)
+		self.InitTestScene_()
+
+	def ResetMaxTimestamp(self, max_timestamp):
+		self.painting_area_info.max_timestamp = max_timestamp
 		hsb = self.horizontalScrollBar()
 		hsb.setMinimum(0)
-		hsb.setMaximum(0)
-		hsb.setPageStep(100000)
-		self.ruler = RulerGraphicsItem(40)
+		self.UpdateHorizontalPageStep(max_timestamp)
 
-		self.screenspace_timestamps_storage = np.empty((1,), dtype=np.uint64)
-		self.screenspace_timestamps = self.screenspace_timestamps_storage
-		self.screenspace_step_size = math.nan
+	def UpdateHorizontalPageStep(self, page_step : int):
+		hsb = self.horizontalScrollBar()
+		# Use 3/4 to allow scrolling a bit "righter" than max_timestamp
+		hsb.setMaximum(self.painting_area_info.max_timestamp - page_step*3//4)
+		hsb.setPageStep(page_step)
+
+	def InitTestScene_(self):
+		kBasePeriod = 32
+		kDuties = [1, 3, 9, 16]
+		for multiplier_log5, duty, inversion in itertools.product(range(7), kDuties, range(2)):
+			item = OneBitGraphicsItem(30, OneBitSignal())
+			multiplier = (5**multiplier_log5)
+			period = multiplier * kBasePeriod
+			half_period = multiplier * duty
+			item.sig.timestamps = np.repeat(np.arange(0, 100000, period), 2)
+			item.sig.timestamps[1::2] += half_period
+			item.sig.value01 = np.zeros_like(item.sig.timestamps, dtype=np.bool_)
+			item.sig.value01[inversion::2] = 1
+			self.signals.append(item)
 
 	def _wheelEvent_HorizontalMove(self, delta : int) -> None:
 		hsb = self.horizontalScrollBar()
-		step = int(hsb.pageStep()*0.2)
+		step = hsb.pageStep()//5
 		translate = step if delta < 0 else -step
 		hsb.setValue(min(hsb.maximum(), max(0, hsb.value() + translate)))
 
@@ -63,8 +90,7 @@ class WaveformGraphWidget(QAbstractScrollArea):
 	def _wheelEvent_HorizontalScale(self, delta : int) -> None:
 		hsb = self.horizontalScrollBar()
 		scale = 1.25 if delta < 0 else 0.8
-		hsb.setPageStep(max(30, min(int(hsb.pageStep()*scale), 100000)))
-		hsb.setMaximum(100000-hsb.pageStep())
+		self.UpdateHorizontalPageStep(max(30, min(int(hsb.pageStep()*scale), self.painting_area_info.max_timestamp)))
 
 	def wheelEvent(self, event: Optional[QWheelEvent]) -> None:
 		modifier = event.modifiers()
@@ -83,39 +109,42 @@ class WaveformGraphWidget(QAbstractScrollArea):
 		event.accept()
 		self.update()
 
-#	def InitTestScene(self):
-#		for i in range(4):
-#			item = OneBitWaveGraphicsItem(1000, 100, i)
-#			item.setPos(0, 110*i+100)
-#			self.scene.addItem(item)
-
-	def _UpdateScreenspaceTimestamp(self) -> None:
+	def _UpdatePaintingAreaInfo(self) -> None:
 		width = self.viewport.width()
-		# resize storage
-		if self.screenspace_timestamps_storage.size < width:
-			self.screenspace_timestamps_storage = np.empty((width,), dtype=np.uint64)
-		# slicing from storage
-		self.screenspace_timestamps = self.screenspace_timestamps_storage[:width]
-		# count time sample
 		hsb = self.horizontalScrollBar()
-		start_time = hsb.value() + 0.5
-		self.step_size = hsb.pageStep() / width
-		for i in range(width):
-			self.screenspace_timestamps[i] = int(start_time + self.step_size*i)
+		start_time = float(hsb.value())
+		total_time_span = hsb.pageStep()
+		self.painting_area_info.step_size = total_time_span / width
+		self.painting_area_info.screenspace_timestamps = (np.linspace(
+			start_time, start_time+total_time_span, width+1
+		) + 0.5).astype(np.uint64) # 0.5 for rounding
+		self.painting_area_info.dumpoff_pixels = np.zeros((width,), np.bool_,)
 
 	def _PaintBackground(self, painter : QPainter) -> None:
 		painter.fillRect(self.viewport.rect(), QColor("black"))
 
 	def _PaintWave(self, painter : QPainter) -> None:
-		pass
+		saved_transform = painter.transform()
+		vsb = self.verticalScrollBar()
+		y_begin = vsb.value()
+		y_end = y_begin + vsb.pageStep()
+		painter.translate(0, 40-y_begin%35)
+		for sig in self.signals[(y_begin//35):((y_end+69)//35)]:
+			sig.PaintByTimestamp(painter, self.painting_area_info)
+			painter.translate(0, 35)
+		painter.setTransform(saved_transform)
 
 	def _PaintTimeAxis(self, painter : QPainter) -> None:
-		self.ruler.PaintByTimestamp(painter, self.screenspace_timestamps, self.step_size)
+		self.ruler.PaintByTimestamp(painter, self.painting_area_info)
 
 	def paintEvent(self, event):
 		painter = QPainter(self.viewport)
-		self._UpdateScreenspaceTimestamp()
+		self._UpdatePaintingAreaInfo()
 		self._PaintBackground(painter)
 		self._PaintWave(painter)
 		self._PaintTimeAxis(painter)
 		painter.end()
+
+	def resizeEvent(self, event):
+		self.verticalScrollBar().setPageStep(event.size().height())
+		super().resizeEvent(event)
