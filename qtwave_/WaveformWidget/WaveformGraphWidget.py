@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 from qtwave_.WaveformWidget.WaveGraphicsItem import (
 	AbstractTimestampSampledGraphicsItem,
 	RulerGraphicsItem,
+	OneBitGraphicsItem,
 )
 import numpy as np
 from typing import *
@@ -26,8 +27,10 @@ import math
 
 class WaveformGraphWidget(QAbstractScrollArea):
 	viewport : QWidget
-	ruler : RulerGraphicsItem
 	screenspace_step_size : float
+	# graphic items
+	ruler : RulerGraphicsItem
+	signals : List[AbstractTimestampSampledGraphicsItem]
 
 	def __init__(self):
 		super().__init__()
@@ -48,6 +51,14 @@ class WaveformGraphWidget(QAbstractScrollArea):
 		self.screenspace_timestamps_storage = np.empty((1,), dtype=np.uint64)
 		self.screenspace_timestamps = self.screenspace_timestamps_storage
 		self.screenspace_step_size = math.nan
+		self.signals = list()
+
+		self.InitTestScene_()
+
+	def InitTestScene_(self):
+		for i in range(4):
+			item = OneBitGraphicsItem(100, np.zeros(100, np.uint64))
+			self.signals.append(item)
 
 	def _wheelEvent_HorizontalMove(self, delta : int) -> None:
 		hsb = self.horizontalScrollBar()
@@ -83,12 +94,6 @@ class WaveformGraphWidget(QAbstractScrollArea):
 		event.accept()
 		self.update()
 
-#	def InitTestScene(self):
-#		for i in range(4):
-#			item = OneBitWaveGraphicsItem(1000, 100, i)
-#			item.setPos(0, 110*i+100)
-#			self.scene.addItem(item)
-
 	def _UpdateScreenspaceTimestamp(self) -> None:
 		width = self.viewport.width()
 		# resize storage
@@ -107,7 +112,11 @@ class WaveformGraphWidget(QAbstractScrollArea):
 		painter.fillRect(self.viewport.rect(), QColor("black"))
 
 	def _PaintWave(self, painter : QPainter) -> None:
-		pass
+		saved_transform = painter.transform()
+		for sig in self.signals:
+			painter.translate(0, 100)
+			sig.PaintByTimestamp(painter, self.screenspace_timestamps, self.step_size)
+		painter.setTransform(saved_transform)
 
 	def _PaintTimeAxis(self, painter : QPainter) -> None:
 		self.ruler.PaintByTimestamp(painter, self.screenspace_timestamps, self.step_size)

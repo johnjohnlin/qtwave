@@ -47,10 +47,32 @@ class RulerGraphicsItem(AbstractTimestampSampledGraphicsItem):
 
 		# Setup GUI pen
 		pen = QPen(QColorConstants.Red)
-		pen.setCosmetic(True)
 		painter.setPen(pen)
 
 		# TODO: too many division, binary search shall be better
 		for i in range(1, screenspace_timestamps.size):
 			if screenspace_timestamps[i]//scale != screenspace_timestamps[i-1]//scale:
 				painter.drawLine(i, 0, i, self.height)
+
+class OneBitSignal:
+	timestamps : npt.NDArray[np.uint64]
+	value01 : npt.NDArray[np.bool_]
+	def __init__(self):
+		pass
+
+class OneBitGraphicsItem(AbstractTimestampSampledGraphicsItem):
+	sig : OneBitSignal
+	def __init__(self, height : int, sig : OneBitSignal):
+		super().__init__(height)
+		self.sig = sig
+
+	def PaintByTimestamp(
+		self,
+		painter : QPainter,
+		screenspace_timestamps : npt.NDArray[np.uint64],
+		step_size : float
+	):
+		# Setup GUI pen
+		pen = QPen(QColorConstants.Green)
+		painter.setPen(pen)
+		painter.drawRect(0, 0, screenspace_timestamps.size//2, self.height//2)
