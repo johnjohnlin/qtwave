@@ -20,7 +20,7 @@ class AbstractTimestampSampledGraphicsItem:
 
 	def PaintByTimestamp(
 		self,
-		# with this painter, you shall paint in x=[0, SST.size), y=[0,self.height]
+		# with this painter, you shall paint in x=[0, SST.size-1), y=[0,self.height]
 		painter : QPainter,
 		# SST: 1D array
 		screenspace_timestamps : npt.NDArray[np.uint64],
@@ -39,6 +39,9 @@ class RulerGraphicsItem(AbstractTimestampSampledGraphicsItem):
 		screenspace_timestamps : npt.NDArray[np.uint64],
 		step_size : float
 	):
+		# Setup GUI pen
+		painter.fillRect(0, 0, screenspace_timestamps.size, self.height, QColorConstants.DarkGray)
+
 		# each scale is spaced by 10**some_int
 		# The distance between two scale > kMinScaleDistance pixels
 		kMinScaleDistance = 30
@@ -46,8 +49,7 @@ class RulerGraphicsItem(AbstractTimestampSampledGraphicsItem):
 		scale = pow(10, math.ceil(math.log(scale_lowerbound, 10)))
 
 		# Setup GUI pen
-		pen = QPen(QColorConstants.Red)
-		painter.setPen(pen)
+		painter.setPen(QPen(QColorConstants.Red))
 
 		# TODO: too many division, binary search shall be better
 		for i in range(1, screenspace_timestamps.size):
@@ -75,4 +77,14 @@ class OneBitGraphicsItem(AbstractTimestampSampledGraphicsItem):
 		# Setup GUI pen
 		pen = QPen(QColorConstants.Green)
 		painter.setPen(pen)
-		painter.drawRect(0, 0, screenspace_timestamps.size//2, self.height//2)
+		idx_in_waveform = np.searchsorted(self.sig.timestamps, screenspace_timestamps)
+		segment_begin = 0
+		width = screenspace_timestamps.size-1
+		for i in range(width):
+			if idx_in_waveform[i] == idx_in_waveform[i+1]:
+				continue
+			painter.drawLine(i, 0, i, self.height)
+			if segment_begin < (i-1):
+				y = 0 if bool(self.sig.value01[idx_in_waveform[segment_begin]]) else self.height
+				painter.drawLine(segment_begin, y, i, y)
+			segment_begin = i

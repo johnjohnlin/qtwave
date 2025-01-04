@@ -20,10 +20,11 @@ from qtwave_.WaveformWidget.WaveGraphicsItem import (
 	AbstractTimestampSampledGraphicsItem,
 	RulerGraphicsItem,
 	OneBitGraphicsItem,
+	OneBitSignal,
 )
 import numpy as np
 from typing import *
-import math
+import math, itertools
 
 class WaveformGraphWidget(QAbstractScrollArea):
 	viewport : QWidget
@@ -56,8 +57,17 @@ class WaveformGraphWidget(QAbstractScrollArea):
 		self.InitTestScene_()
 
 	def InitTestScene_(self):
-		for i in range(4):
-			item = OneBitGraphicsItem(100, np.zeros(100, np.uint64))
+		kBasePeriod = 32
+		kDuties = [1, 3, 9, 16]
+		for multiplier_log5, duty, inversion in itertools.product(range(7), kDuties, range(2)):
+			item = OneBitGraphicsItem(30, OneBitSignal())
+			multiplier = (5**multiplier_log5)
+			period = multiplier * kBasePeriod
+			half_period = multiplier * duty
+			item.sig.timestamps = np.repeat(np.arange(0, 100000, period), 2)
+			item.sig.timestamps[1::2] += half_period
+			item.sig.value01 = np.zeros((1000,), dtype=np.bool_)
+			item.sig.value01[inversion::2] = 1
 			self.signals.append(item)
 
 	def _wheelEvent_HorizontalMove(self, delta : int) -> None:
@@ -95,7 +105,7 @@ class WaveformGraphWidget(QAbstractScrollArea):
 		self.update()
 
 	def _UpdateScreenspaceTimestamp(self) -> None:
-		width = self.viewport.width()
+		width = self.viewport.width()+1
 		# resize storage
 		if self.screenspace_timestamps_storage.size < width:
 			self.screenspace_timestamps_storage = np.empty((width,), dtype=np.uint64)
@@ -103,19 +113,27 @@ class WaveformGraphWidget(QAbstractScrollArea):
 		self.screenspace_timestamps = self.screenspace_timestamps_storage[:width]
 		# count time sample
 		hsb = self.horizontalScrollBar()
-		start_time = hsb.value() + 0.5
+		start_time = float(hsb.value())
 		self.step_size = hsb.pageStep() / width
 		for i in range(width):
-			self.screenspace_timestamps[i] = int(start_time + self.step_size*i)
+			timestamp = int(start_time + self.step_size*i)
+			self.screenspace_timestamps[i] = timestamp
+			if timestamp > 100000:
+				self.screenspace_timestamps = self.screenspace_timestamps[:i+1]
+				break
 
 	def _PaintBackground(self, painter : QPainter) -> None:
 		painter.fillRect(self.viewport.rect(), QColor("black"))
 
 	def _PaintWave(self, painter : QPainter) -> None:
 		saved_transform = painter.transform()
-		for sig in self.signals:
-			painter.translate(0, 100)
+		vsb = self.verticalScrollBar()
+		y_begin = vsb.value()
+		y_end = y_begin + vsb.pageStep()
+		painter.translate(0, 40-y_begin%35)
+		for sig in self.signals[(y_begin//35):((y_end+69)//35)]:
 			sig.PaintByTimestamp(painter, self.screenspace_timestamps, self.step_size)
+			painter.translate(0, 35)
 		painter.setTransform(saved_transform)
 
 	def _PaintTimeAxis(self, painter : QPainter) -> None:
