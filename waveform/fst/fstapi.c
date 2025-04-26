@@ -39,11 +39,6 @@
  *
  */
 
-#ifndef FST_CONFIG_INCLUDE
-# define FST_CONFIG_INCLUDE <config.h>
-#endif
-#include FST_CONFIG_INCLUDE
-
 #include "fstapi.h"
 #include "fastlz.h"
 #include "lz4.h"

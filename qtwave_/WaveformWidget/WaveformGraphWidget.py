@@ -115,9 +115,9 @@ class WaveformGraphWidget(QAbstractScrollArea):
 		start_time = float(hsb.value())
 		total_time_span = hsb.pageStep()
 		self.painting_area_info.step_size = total_time_span / width
-		self.painting_area_info.screenspace_timestamps = (np.linspace(
+		self.painting_area_info.screenspace_timestamps = np.ceil(np.linspace(
 			start_time, start_time+total_time_span, width+1
-		) + 0.5).astype(np.uint64) # 0.5 for rounding
+		)).astype(np.uint64)
 		self.painting_area_info.dumpoff_pixels = np.zeros((width,), np.bool_,)
 
 	def _PaintBackground(self, painter : QPainter) -> None:

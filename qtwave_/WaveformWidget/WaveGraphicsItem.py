@@ -125,9 +125,18 @@ class OneBitSignal:
 
 class OneBitGraphicsItem(AbstractTimestampSampledGraphicsItem):
 	sig : OneBitSignal
+	painter : QPainter
+
 	def __init__(self, height : int, sig : OneBitSignal):
 		super().__init__(height)
 		self.sig = sig
+
+	def PaintValueHold(self, left: int, right: int, value: FourValue):
+		y = 0 if value == FourValue.e1 else self.height
+		self.painter.drawLine(left, y, right, y)
+
+	def PaintValueChange(self, x_position: int):
+		self.painter.drawLine(x_position, 0, x_position, self.height)
 
 	def PaintByTimestamp(
 		self,
@@ -136,6 +145,7 @@ class OneBitGraphicsItem(AbstractTimestampSampledGraphicsItem):
 	):
 		# Setup GUI pen
 		pen = QPen(QColorConstants.Green)
+		self.painter = painter
 		painter.setPen(pen)
 		idx_in_waveform = np.searchsorted(self.sig.timestamps, pinfo.screenspace_timestamps)
 		segment_begin = 0
@@ -145,13 +155,10 @@ class OneBitGraphicsItem(AbstractTimestampSampledGraphicsItem):
 			has_value_change = idx_in_waveform[i] != idx_in_waveform[i+1]
 			end_of_wave = i == width-1 or pinfo.screenspace_timestamps[i+1] > pinfo.max_timestamp
 			if has_value_change or end_of_wave:
-				# draw horizontal line
 				if segment_begin < (i-1):
-					y = 0 if prev_value == FourValue.e1 else self.height
-					painter.drawLine(segment_begin, y, i, y)
+					self.PaintValueHold(segment_begin, i, prev_value)
 			if has_value_change:
-				# draw vertical
-				painter.drawLine(i, 0, i, self.height)
+				self.PaintValueChange(i)
 				segment_begin = i
 				prev_value = self.sig.GetFourValue(idx_in_waveform[i+1]-1)
 			if end_of_wave:
